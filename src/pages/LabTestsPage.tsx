@@ -382,7 +382,7 @@ const LabTestsPage = () => {
                 >
                   <Image className="w-6 h-6 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">{t.uploadLabFile || "Tap to attach lab image"}</p>
-                  <p className="text-xs text-muted-foreground">JPG, PNG, WebP</p>
+                  <p className="text-xs text-muted-foreground">JPG, PNG, WebP, PDF</p>
                 </button>
               )}
               <input
