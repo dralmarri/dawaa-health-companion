@@ -84,15 +84,47 @@ const LabTestsPage = () => {
 
   const alreadyAdded = new Set(manualEntries.map((e) => e.testName));
 
-  const handleImageAttach = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File, maxWidth = 800, quality = 0.6): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = document.createElement("img");
+      const reader = new FileReader();
+      reader.onload = () => {
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const ratio = Math.min(maxWidth / img.width, maxWidth / img.height, 1);
+          canvas.width = img.width * ratio;
+          canvas.height = img.height * ratio;
+          const ctx = canvas.getContext("2d")!;
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = reject;
+        img.src = reader.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileAttach = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith("image/")) return;
+    if (!file) return;
     setAttachedImageName(file.name);
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAttachedImage(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    
+    if (file.type.startsWith("image/")) {
+      try {
+        const compressed = await compressImage(file);
+        setAttachedImage(compressed);
+      } catch {
+        // Fallback to raw if compression fails
+        const reader = new FileReader();
+        reader.onload = () => setAttachedImage(reader.result as string);
+        reader.readAsDataURL(file);
+      }
+    } else if (file.type === "application/pdf") {
+      // For PDFs, store just a marker - too large for localStorage
+      setAttachedImage("pdf:" + file.name);
+    }
     if (imageInputRef.current) imageInputRef.current.value = "";
   };
 
@@ -108,17 +140,42 @@ const LabTestsPage = () => {
       fileUrl: attachedImage || undefined,
       date: new Date().toISOString(),
     };
-    store.saveLabTest(test);
+    
+    try {
+      store.saveLabTest(test);
 
-    if (allResults.length > 0) {
-      const stored = JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}");
-      stored[testId] = allResults;
-      localStorage.setItem("dawaa_lab_results", JSON.stringify(stored));
-      setSavedResults((prev) => ({ ...prev, [testId]: allResults }));
+      if (allResults.length > 0) {
+        const stored = JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}");
+        stored[testId] = allResults;
+        localStorage.setItem("dawaa_lab_results", JSON.stringify(stored));
+        setSavedResults((prev) => ({ ...prev, [testId]: allResults }));
+      }
+
+      setTests(store.getLabTests());
+      resetForm();
+    } catch (err) {
+      console.error("Save error:", err);
+      // If localStorage quota exceeded, try saving without image
+      if (attachedImage && attachedImage.length > 1000) {
+        test.fileUrl = undefined;
+        try {
+          store.saveLabTest(test);
+          if (allResults.length > 0) {
+            const stored = JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}");
+            stored[testId] = allResults;
+            localStorage.setItem("dawaa_lab_results", JSON.stringify(stored));
+            setSavedResults((prev) => ({ ...prev, [testId]: allResults }));
+          }
+          setTests(store.getLabTests());
+          resetForm();
+          alert(isRTL ? "تم الحفظ بدون الصورة (المساحة ممتلئة)" : "Saved without image (storage full)");
+        } catch {
+          alert(isRTL ? "فشل الحفظ - المساحة ممتلئة" : "Save failed - storage full");
+        }
+      } else {
+        alert(isRTL ? "فشل الحفظ" : "Save failed");
+      }
     }
-
-    setTests(store.getLabTests());
-    resetForm();
   };
 
   const resetForm = () => {
@@ -270,9 +327,15 @@ const LabTestsPage = () => {
                   </div>
                 </div>
                 {/* Show attached image */}
-                {test.fileUrl && (
+                {test.fileUrl && !test.fileUrl.startsWith("pdf:") && (
                   <div className="mt-3">
                     <img src={test.fileUrl} alt={test.name} className="rounded-xl max-h-60 w-full object-contain border border-border" />
+                  </div>
+                )}
+                {test.fileUrl && test.fileUrl.startsWith("pdf:") && (
+                  <div className="mt-3 rounded-xl border border-border bg-muted/50 p-3 flex items-center gap-2">
+                    <span className="text-lg">📄</span>
+                    <span className="text-sm text-muted-foreground">{test.fileUrl.replace("pdf:", "")}</span>
                   </div>
                 )}
                 {showResults === test.id && savedResults[test.id] && (
@@ -325,14 +388,14 @@ const LabTestsPage = () => {
                 >
                   <Image className="w-6 h-6 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">{t.uploadLabFile || "Tap to attach lab image"}</p>
-                  <p className="text-xs text-muted-foreground">JPG, PNG, WebP</p>
+                  <p className="text-xs text-muted-foreground">JPG, PNG, WebP, PDF</p>
                 </button>
               )}
               <input
                 ref={imageInputRef}
                 type="file"
-                accept="image/*"
-                onChange={handleImageAttach}
+                accept="image/*,.pdf"
+                onChange={handleFileAttach}
                 className="hidden"
               />
             </div>
