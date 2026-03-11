@@ -11,7 +11,7 @@ export const labReferences: LabReference[] = [
   // Complete Blood Count (CBC)
   { name: "WBC", aliases: ["white blood cells", "white blood cell count", "wbc count", "leucocytes", "wbcs", "wacs"], unit: "×10³/µL", normalRange: { min: 4.0, max: 11.0 }, category: "CBC" },
   { name: "RBC", aliases: ["red blood cells", "red blood cell count", "rbc count", "erythrocytes", "rbcs", "hicind"], unit: "×10⁶/µL", normalRange: { min: 4.5, max: 5.5 }, category: "CBC" },
-  { name: "Hemoglobin", aliases: ["hgb", "hb", "haemoglobin", "her"], unit: "g/dL", normalRange: { min: 12.0, max: 17.5 }, category: "CBC" },
+  { name: "Hemoglobin", aliases: ["hgb", "haemoglobin", "hemoglobin"], unit: "g/dL", normalRange: { min: 12.0, max: 17.5 }, category: "CBC" },
   { name: "Hematocrit", aliases: ["hct", "packed cell volume", "pcv"], unit: "%", normalRange: { min: 36, max: 50 }, category: "CBC" },
   { name: "Platelets", aliases: ["plt", "platelet count", "thrombocytes", "platey", "platel"], unit: "×10³/µL", normalRange: { min: 150, max: 400 }, category: "CBC" },
   { name: "MCV", aliases: ["mean corpuscular volume"], unit: "fL", normalRange: { min: 80, max: 100 }, category: "CBC" },
@@ -42,7 +42,7 @@ export const labReferences: LabReference[] = [
   { name: "GGT", aliases: ["gamma-glutamyl transferase", "gamma gt"], unit: "U/L", normalRange: { min: 9, max: 48 }, category: "Liver" },
 
   // Kidney Function
-  { name: "Creatinine", aliases: ["creat", "cr"], unit: "mg/dL", normalRange: { min: 0.7, max: 1.3 }, category: "Kidney" },
+  { name: "Creatinine", aliases: ["creat", "creatinine", "serum creatinine"], unit: "mg/dL", normalRange: { min: 0.7, max: 1.3 }, category: "Kidney" },
   { name: "BUN", aliases: ["blood urea nitrogen", "urea nitrogen"], unit: "mg/dL", normalRange: { min: 7, max: 20 }, category: "Kidney" },
   { name: "Urea", aliases: ["blood urea"], unit: "mg/dL", normalRange: { min: 15, max: 45 }, category: "Kidney" },
   { name: "Uric Acid", aliases: ["urate"], unit: "mg/dL", normalRange: { min: 3.5, max: 7.2 }, category: "Kidney" },
@@ -195,40 +195,48 @@ export function extractLabValues(text: string): AnalyzedResult[] {
   const results: AnalyzedResult[] = [];
   const matched = new Set<string>();
   
-  // Normalize OCR artifacts
+  // Normalize OCR artifacts but keep > markers (they indicate test lines)
   const normalized = text
     .replace(/§/g, "%")
-    .replace(/[>•►▶]/g, " ");
+    .replace(/[•►▶]/g, " ");
   
   const lines = normalized.split(/\n/);
 
   // Track which base names (without % or #) have been matched with which variant
   const matchedBaseNames = new Map<string, string>(); // baseName -> matched ref.name
 
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
+  for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+    const line = lines[lineIdx].trim();
     if (!line || line.length < 3) continue;
 
-    // Get all candidate numbers from the line
+    // Get all candidate numbers from current line
     const allNumbers = extractCandidateNumbers(line);
-    if (allNumbers.length === 0) continue;
+    
+    // Also collect numbers from adjacent lines for multi-line matching
+    const nextLine = lineIdx + 1 < lines.length ? lines[lineIdx + 1].trim() : "";
+    const nextLineNumbers = extractCandidateNumbers(nextLine);
+    // Combined: current line numbers first, then next line numbers
+    const extendedNumbers = [...allNumbers, ...nextLineNumbers];
+    
+    if (extendedNumbers.length === 0) continue;
 
-    // Get text before the first digit
-    const firstDigitIdx = line.search(/\d/);
+    // Get text before the first digit (strip > markers for matching but they help identify test lines)
+    const cleanedLine = line.replace(/^[>\s(]+/, "");
+    const firstDigitIdx = cleanedLine.search(/\d/);
     if (firstDigitIdx < 1) continue;
-    let textPart = line.slice(0, firstDigitIdx).trim().toLowerCase();
+    let textPart = cleanedLine.slice(0, firstDigitIdx).trim().toLowerCase();
     textPart = textPart.replace(/[^a-z0-9\s#%]/gi, "").trim();
-    if (textPart.length < 1) continue;
+    if (textPart.length < 2) continue;
 
     // Determine if this line explicitly has # marker
     const hasHashMarker = textPart.includes("#");
     const cleanText = textPart.replace(/[#%4]\s*$/g, "").trim();
+    if (cleanText.length < 2) continue;
 
     // Get the base name for differential detection
     const baseName = cleanText.replace(/\s*(abs|absolute|count)\s*$/i, "").trim();
 
     // Check if we already matched the % variant of this base name
-    // If so, this is likely the # (absolute) variant
     const previouslyMatchedAs = matchedBaseNames.get(baseName);
     const isSecondOccurrence = previouslyMatchedAs && previouslyMatchedAs.includes("%");
 
@@ -240,17 +248,30 @@ export function extractLabValues(text: string): AnalyzedResult[] {
 
       // If this is a second occurrence of the same base name, only try # variants
       if (isSecondOccurrence && ref.name.includes("%")) continue;
-      // If not a second occurrence and no hash marker, skip # variants  
       if (!isSecondOccurrence && !hasHashMarker && ref.name.includes("#")) continue;
 
       const allNames = [ref.name.toLowerCase(), ...ref.aliases.map(a => a.toLowerCase())];
       
-      // Exact match
+      // Exact match - require minimum length for includes/endsWith matching
       let exactFound = false;
       for (const name of allNames) {
         const cleanName = name.replace(/[#%]/g, "").trim();
-        if (cleanText === cleanName || cleanText.endsWith(cleanName) || cleanText.includes(cleanName)) {
-          const plausibleValue = findBestValue(ref, allNumbers);
+        if (cleanName.length < 2) continue; // Skip single-char names
+        
+        if (cleanText === cleanName) {
+          // Perfect exact match - always accept
+          const plausibleValue = findBestValue(ref, allNumbers.length > 0 ? allNumbers : extendedNumbers);
+          if (plausibleValue !== null) {
+            bestScore = 1;
+            bestMatch = { ref, value: plausibleValue };
+            exactFound = true;
+          }
+          break;
+        }
+        
+        // For includes/endsWith, require at least 3 chars to avoid false positives
+        if (cleanName.length >= 3 && (cleanText.endsWith(cleanName) || cleanText.includes(cleanName))) {
+          const plausibleValue = findBestValue(ref, allNumbers.length > 0 ? allNumbers : extendedNumbers);
           if (plausibleValue !== null) {
             bestScore = 1;
             bestMatch = { ref, value: plausibleValue };
@@ -261,12 +282,13 @@ export function extractLabValues(text: string): AnalyzedResult[] {
       }
       if (exactFound) break;
 
-      // Fuzzy match
+      // Fuzzy match - only for names >= 3 chars
       for (const name of allNames) {
         const cleanName = name.replace(/[#%]/g, "").trim();
+        if (cleanName.length < 3) continue; // Skip short aliases for fuzzy
         const score = similarity(cleanText, cleanName);
-        if (score > bestScore && score >= 0.45) {
-          const plausibleValue = findBestValue(ref, allNumbers);
+        if (score > bestScore && score >= 0.5) { // Raised threshold from 0.45 to 0.5
+          const plausibleValue = findBestValue(ref, allNumbers.length > 0 ? allNumbers : extendedNumbers);
           if (plausibleValue !== null) {
             bestScore = score;
             bestMatch = { ref, value: plausibleValue };
@@ -275,7 +297,7 @@ export function extractLabValues(text: string): AnalyzedResult[] {
       }
     }
 
-    if (bestMatch && bestScore >= 0.45) {
+    if (bestMatch && bestScore >= 0.5) {
       matched.add(bestMatch.ref.name);
       matchedBaseNames.set(baseName, bestMatch.ref.name);
       const analyzed = analyzeValue(bestMatch.ref.name, bestMatch.value);
@@ -287,10 +309,11 @@ export function extractLabValues(text: string): AnalyzedResult[] {
 }
 
 // Find the most plausible value for a test from candidate numbers
+// Prefer values closest to the normal range (most likely to be actual results vs reference numbers)
 function findBestValue(ref: LabReference, numbers: number[]): number | null {
   const plausible = numbers.filter(n => isPlausibleValue(ref, n));
   if (plausible.length === 0) return null;
-  // Return first plausible number (typically the result value)
+  // Return first plausible number (typically the result value appears first)
   return plausible[0];
 }
 
