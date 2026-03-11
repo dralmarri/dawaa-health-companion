@@ -7,6 +7,88 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { searchMedications, isKnownMedication } from "@/lib/medications-db";
 import type { Medication } from "@/types";
 
+interface MedNameProps {
+  name: string;
+  setName: (v: string) => void;
+  t: Record<string, string>;
+}
+
+const MedicationNameInput = ({ name, setName, t }: MedNameProps) => {
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const isValid = name.trim().length > 0 && isKnownMedication(name);
+  const showWarning = name.trim().length >= 3 && !isValid;
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleChange = (value: string) => {
+    setName(value);
+    const results = searchMedications(value);
+    setSuggestions(results);
+    setShowSuggestions(results.length > 0);
+  };
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <label className="text-base font-bold text-foreground block mb-2">{t.medicationName} *</label>
+      <div className="relative">
+        <input
+          value={name}
+          onChange={(e) => handleChange(e.target.value)}
+          onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+          placeholder="e.g. Panadol, Aspirin..."
+          className={`w-full px-4 py-3 rounded-xl border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 pe-10 ${
+            isValid ? "border-success focus:ring-success/30" : showWarning ? "border-warning focus:ring-warning/30" : "border-border focus:ring-ring"
+          }`}
+        />
+        {isValid && (
+          <CheckCircle2 className="absolute top-1/2 -translate-y-1/2 end-3 w-5 h-5 text-success" />
+        )}
+        {showWarning && (
+          <AlertCircle className="absolute top-1/2 -translate-y-1/2 end-3 w-5 h-5 text-warning" />
+        )}
+      </div>
+
+      {showWarning && (
+        <p className="text-xs text-warning mt-1 flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          Medication not found in database. Please verify the name.
+        </p>
+      )}
+      {isValid && (
+        <p className="text-xs text-success mt-1 flex items-center gap-1">
+          <CheckCircle2 className="w-3 h-3" />
+          Medication name verified ✓
+        </p>
+      )}
+
+      {showSuggestions && (
+        <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+          {suggestions.map((med) => (
+            <button
+              key={med}
+              type="button"
+              onClick={() => { setName(med); setShowSuggestions(false); }}
+              className="w-full text-start px-4 py-2.5 text-foreground hover:bg-accent transition-colors first:rounded-t-xl last:rounded-b-xl text-sm"
+            >
+              {med}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const AddMedicationPage = () => {
   const navigate = useNavigate();
   const { t, isRTL } = useLanguage();
