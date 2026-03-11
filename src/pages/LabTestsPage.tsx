@@ -127,14 +127,17 @@ const LabTestsPage = () => {
   };
 
   const handleSave = () => {
-    if (!name.trim()) return;
+    const hasManualValues = manualEntries.some((entry) => entry.value.trim() !== "");
+    const canSave = Boolean(name.trim() || notes.trim() || attachedImage || hasManualValues);
+    if (!canSave) return;
+
     const testId = crypto.randomUUID();
     const allResults = getManualResults();
-    const testNumber = tests.length + 1;
+    const generatedName = name.trim() || (isRTL ? `تحليل ${format(new Date(), "yyyy/MM/dd")}` : `Lab Test ${format(new Date(), "yyyy/MM/dd")}`);
 
     const test: LabTest = {
       id: testId,
-      name: name.trim(),
+      name: generatedName,
       notes: notes.trim(),
       fileUrl: attachedImage || undefined,
       date: new Date().toISOString(),
@@ -330,6 +333,8 @@ const LabTestsPage = () => {
     );
   };
 
+  const hasManualValues = manualEntries.some((entry) => entry.value.trim() !== "");
+  const canSave = Boolean(name.trim() || notes.trim() || attachedImage || hasManualValues);
   const manualResults = getManualResults();
 
   return (
@@ -682,7 +687,7 @@ const LabTestsPage = () => {
             <div className="flex gap-3">
               <button
                 onClick={handleSave}
-                disabled={!name.trim()}
+                disabled={!canSave}
                 className="flex-1 py-3 rounded-2xl bg-primary text-primary-foreground font-bold disabled:opacity-50"
               >
                 {t.save}
