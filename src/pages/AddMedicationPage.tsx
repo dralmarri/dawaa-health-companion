@@ -16,9 +16,11 @@ interface MedNameProps {
 const MedicationNameInput = ({ name, setName, t }: MedNameProps) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isValid, setIsValid] = useState(false);
+  const [checking, setChecking] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const isValid = name.trim().length > 0 && isKnownMedication(name);
-  const showWarning = name.trim().length >= 3 && !isValid;
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const showWarning = name.trim().length >= 3 && !isValid && !checking;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -30,11 +32,29 @@ const MedicationNameInput = ({ name, setName, t }: MedNameProps) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleChange = (value: string) => {
+  // Validate medication name with debounce
+  useEffect(() => {
+    if (name.trim().length < 2) { setIsValid(false); return; }
+    setChecking(true);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      const valid = await isKnownMedication(name);
+      setIsValid(valid);
+      setChecking(false);
+    }, 500);
+    return () => clearTimeout(debounceRef.current);
+  }, [name]);
+
+  const handleChange = async (value: string) => {
     setName(value);
-    const results = searchMedications(value);
-    setSuggestions(results);
-    setShowSuggestions(results.length > 0);
+    if (value.length >= 2) {
+      const results = await searchMedications(value);
+      setSuggestions(results);
+      setShowSuggestions(results.length > 0);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
   };
 
   return (
