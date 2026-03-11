@@ -61,9 +61,9 @@ const BloodPressurePage = () => {
                 <p className="text-sm text-heart">♥ {latestReading.heartRate} bpm</p>
                 <span className={`text-sm font-medium ${getCategory(latestReading.systolic).color}`}>{getCategory(latestReading.systolic).label}</span>
               </div>
-              <div className="border-s border-border ps-4 flex-1">
-                <p className="text-sm text-muted-foreground">{t.averageOfLast} {last7.length} {t.readings}</p>
-                <p className="text-3xl font-bold text-foreground">{avgSys}/{avgDia}</p>
+              <div className="border-s border-border ps-3 flex-1 min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground">{t.averageOfLast} {last7.length} {t.readings}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-foreground">{avgSys}/{avgDia}</p>
                 <p className="text-sm text-heart">♥ {avgHr} bpm</p>
                 <p className="text-xs text-muted-foreground">mmHg</p>
               </div>
