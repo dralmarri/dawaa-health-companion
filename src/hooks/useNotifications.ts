@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { requestNotificationPermission, scheduleMedicationNotifications, startNotificationLoop, getPermissionStatus } from '@/lib/notifications';
-import { checkAndEscalate } from '@/lib/escalation';
+// import { checkAndEscalate } from '@/lib/escalation'; // disabled temporarily
 import { store } from '@/lib/store';
 
 export function useNotifications() {
@@ -16,15 +16,7 @@ export function useNotifications() {
     };
     init();
 
-    // Check escalation every 5 minutes
-    const escalationInterval = setInterval(() => {
-      checkAndEscalate();
-    }, 5 * 60 * 1000);
-
-    // Also check once on load
-    checkAndEscalate();
-
-    return () => clearInterval(escalationInterval);
+    return () => {};
   }, []);
 
   const reschedule = useCallback(() => {

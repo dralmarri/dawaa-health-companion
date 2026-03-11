@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarDays, FlaskConical, Users, FileText, Shield, Mail, Info, LogOut, Trash2, ChevronRight, ChevronLeft, Bell } from "lucide-react";
+import { CalendarDays, FlaskConical, FileText, Shield, Mail, Info, LogOut, Trash2, ChevronRight, ChevronLeft, Bell } from "lucide-react";
 import { store } from "@/lib/store";
 import ChipSelector from "@/components/ChipSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -39,8 +39,6 @@ const SettingsPage = () => {
   const Chevron = isRTL ? ChevronLeft : ChevronRight;
 
   const menuItems = [
-    { icon: Users, label: t.emergencyContact, path: "/emergency-contact",
-      subtitle: settings.emergencyContact ? settings.emergencyContact.name : (isRTL ? "لم يتم التعيين" : "Not set") },
     { icon: FlaskConical, label: t.labTests, path: "/lab-tests" },
     { icon: CalendarDays, label: t.appointments, path: "/appointments" },
   ];
@@ -121,17 +119,8 @@ const SettingsPage = () => {
             onChange={(v) => update({ reminderBefore: reminderKeys[reminderLabels.indexOf(v)] || v })} />
         </div>
 
-        {/* Escalation */}
-        <div className="bg-card rounded-2xl border border-border p-5 flex items-center justify-between">
-          <div className="flex-1">
-            <h3 className="font-bold text-foreground">{t.escalationOnMissed}</h3>
-            <p className="text-sm text-muted-foreground">{t.escalationDesc}</p>
-          </div>
-          <button onClick={() => update({ escalationOnMissed: !settings.escalationOnMissed })}
-            className={`w-12 h-7 rounded-full transition-colors relative flex-shrink-0 ${settings.escalationOnMissed ? "bg-primary" : "bg-border"}`}>
-            <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-card shadow transition-all ${settings.escalationOnMissed ? "ltr:right-0.5 rtl:left-0.5" : "ltr:left-0.5 rtl:right-0.5"}`} />
-          </button>
-        </div>
+
+
 
         {/* Menu Items */}
         <div className="bg-card rounded-2xl border border-border divide-y divide-border">
@@ -140,10 +129,7 @@ const SettingsPage = () => {
               className="w-full flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-3">
                 <item.icon className="w-5 h-5 text-primary" />
-                <div className="text-start">
-                  <span className="text-foreground font-medium block">{item.label}</span>
-                  {item.subtitle && <span className="text-xs text-muted-foreground">{item.subtitle}</span>}
-                </div>
+                <span className="text-foreground font-medium">{item.label}</span>
               </div>
               <Chevron className="w-5 h-5 text-muted-foreground" />
             </button>
