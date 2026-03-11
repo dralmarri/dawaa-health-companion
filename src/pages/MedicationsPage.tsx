@@ -13,6 +13,8 @@ const MedicationsPage = () => {
   const [medications, setMedications] = useState<Medication[]>(store.getMedications());
 
   const handleDelete = (id: string) => {
+    const confirmed = window.confirm(isRTL ? "هل أنت متأكد من حذف هذا الدواء؟" : "Are you sure you want to delete this medication?");
+    if (!confirmed) return;
     store.deleteMedication(id);
     setMedications(store.getMedications());
   };

@@ -9,7 +9,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import type { Appointment } from "@/types";
 
 const AppointmentsPage = () => {
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const [appointments, setAppointments] = useState(store.getAppointments());
   const [showForm, setShowForm] = useState(false);
   const [tab, setTab] = useState<"all" | "upcoming" | "completed">("all");
@@ -56,6 +56,8 @@ const AppointmentsPage = () => {
   };
 
   const handleDelete = (id: string) => {
+    const confirmed = window.confirm(isRTL ? "هل أنت متأكد من حذف هذا الموعد؟" : "Are you sure you want to delete this appointment?");
+    if (!confirmed) return;
     store.deleteAppointment(id);
     setAppointments(store.getAppointments());
   };

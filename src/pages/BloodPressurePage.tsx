@@ -8,7 +8,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import type { BloodPressureReading } from "@/types";
 
 const BloodPressurePage = () => {
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const [readings, setReadings] = useState(store.getReadings());
   const [systolic, setSystolic] = useState("");
   const [diastolic, setDiastolic] = useState("");
@@ -42,6 +42,8 @@ const BloodPressurePage = () => {
   };
 
   const handleDelete = (id: string) => {
+    const confirmed = window.confirm(isRTL ? "هل أنت متأكد من حذف هذه القراءة؟" : "Are you sure you want to delete this reading?");
+    if (!confirmed) return;
     store.deleteReading(id);
     setReadings(store.getReadings());
   };
