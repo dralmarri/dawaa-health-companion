@@ -1,16 +1,18 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { Home, Pill, CalendarDays, Settings } from "lucide-react";
-
-const tabs = [
-  { path: "/", label: "Home", icon: Home },
-  { path: "/medications", label: "Medications", icon: Pill },
-  { path: "/history", label: "History", icon: CalendarDays },
-  { path: "/settings", label: "Settings", icon: Settings },
-];
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useLanguage();
+
+  const tabs = [
+    { path: "/", label: t.home, icon: Home },
+    { path: "/medications", label: t.medications, icon: Pill },
+    { path: "/history", label: t.history, icon: CalendarDays },
+    { path: "/settings", label: t.settings, icon: Settings },
+  ];
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
