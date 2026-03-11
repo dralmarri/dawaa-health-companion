@@ -42,7 +42,7 @@ export const labReferences: LabReference[] = [
   { name: "GGT", aliases: ["gamma-glutamyl transferase", "gamma gt"], unit: "U/L", normalRange: { min: 9, max: 48 }, category: "Liver" },
 
   // Kidney Function
-  { name: "Creatinine", aliases: ["creat", "cr"], unit: "mg/dL", normalRange: { min: 0.7, max: 1.3 }, category: "Kidney" },
+  { name: "Creatinine", aliases: ["creat", "creatinine", "serum creatinine"], unit: "mg/dL", normalRange: { min: 0.7, max: 1.3 }, category: "Kidney" },
   { name: "BUN", aliases: ["blood urea nitrogen", "urea nitrogen"], unit: "mg/dL", normalRange: { min: 7, max: 20 }, category: "Kidney" },
   { name: "Urea", aliases: ["blood urea"], unit: "mg/dL", normalRange: { min: 15, max: 45 }, category: "Kidney" },
   { name: "Uric Acid", aliases: ["urate"], unit: "mg/dL", normalRange: { min: 3.5, max: 7.2 }, category: "Kidney" },
