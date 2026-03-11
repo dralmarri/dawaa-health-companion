@@ -57,7 +57,7 @@ const SettingsPage = () => {
   const reminderLabels = Object.values(reminderMap);
 
   return (
-    <div className="pb-24">
+    <div className="pb-28">
       <div className="px-4 pt-6 pb-4">
         <h1 className="text-3xl font-bold text-foreground">{t.settings}</h1>
       </div>

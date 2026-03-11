@@ -72,7 +72,7 @@ const AppointmentsPage = () => {
   };
 
   return (
-    <div className="pb-24">
+    <div className="pb-28">
       <PageHeader title={t.appointments} showBack onAdd={() => setShowForm(true)} />
 
       <div className="px-4 flex gap-2 mb-4">

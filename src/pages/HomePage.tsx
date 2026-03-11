@@ -57,7 +57,7 @@ const HomePage = () => {
   });
 
   return (
-    <div className="pb-24 px-4">
+    <div className="pb-28 px-4">
       <div className="pt-6 pb-4">
         <h1 className="text-3xl font-bold text-foreground">
           {t.appName} <span className="text-2xl">💊</span>
