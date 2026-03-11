@@ -304,6 +304,7 @@ const translations = {
     viewResults: "عرض النتائج",
     hideResults: "إخفاء",
     analyzedResults: "نتائج محللة",
+    ocrProcessing: "جاري قراءة الصورة (OCR)...",
   },
 };
 
