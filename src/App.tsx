@@ -23,7 +23,7 @@ const queryClient = new QueryClient();
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   useNotifications();
   return (
-    <div className="max-w-lg mx-auto min-h-screen min-h-[100dvh] bg-background relative overflow-y-auto overflow-x-hidden">
+    <div className="max-w-lg mx-auto min-h-[100dvh] bg-background relative">
       {children}
       <BottomNav />
     </div>
