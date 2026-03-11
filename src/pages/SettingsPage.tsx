@@ -154,7 +154,7 @@ const SettingsPage = () => {
         <div className="bg-card rounded-2xl border border-border divide-y divide-border">
           <div className="px-5 py-3"><h3 className="font-bold text-foreground">{t.about}</h3></div>
           {aboutItems.map((item) => (
-            <button key={item.label} onClick={() => item.path && navigate(item.path)}
+            <button key={item.label} onClick={() => { if (item.action) item.action(); else if (item.path) navigate(item.path); }}
               className="w-full flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-3">
                 <item.icon className="w-5 h-5 text-primary" />
