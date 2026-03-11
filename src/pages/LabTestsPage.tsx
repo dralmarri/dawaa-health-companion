@@ -15,6 +15,7 @@ const LabTestsPage = () => {
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0);
   const [analysisResults, setAnalysisResults] = useState<AnalyzedResult[]>([]);
   const [fileName, setFileName] = useState("");
   const [showResults, setShowResults] = useState<string | null>(null);
@@ -44,11 +45,27 @@ const LabTestsPage = () => {
         const text = await file.text();
         const results = extractLabValues(text);
         setAnalysisResults(results);
+      } else if (file.type.startsWith("image/")) {
+        // OCR for images
+        setOcrProgress(0);
+        const { createWorker } = await import("tesseract.js");
+        const worker = await createWorker("eng", undefined, {
+          logger: (m: { status: string; progress: number }) => {
+            if (m.status === "recognizing text") {
+              setOcrProgress(Math.round(m.progress * 100));
+            }
+          },
+        });
+        const { data } = await worker.recognize(file);
+        await worker.terminate();
+        const results = extractLabValues(data.text);
+        setAnalysisResults(results);
       }
     } catch (err) {
       console.error("File analysis error:", err);
     } finally {
       setAnalyzing(false);
+      setOcrProgress(0);
     }
 
     // Reset file input
@@ -263,7 +280,14 @@ const LabTestsPage = () => {
                 {analyzing ? (
                   <div className="flex flex-col items-center gap-2">
                     <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                    <p className="text-sm text-muted-foreground">{t.analyzingFile}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {ocrProgress > 0 ? `${t.ocrProcessing} ${ocrProgress}%` : t.analyzingFile}
+                    </p>
+                    {ocrProgress > 0 && (
+                      <div className="w-full bg-muted rounded-full h-2 mt-1">
+                        <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${ocrProgress}%` }} />
+                      </div>
+                    )}
                   </div>
                 ) : fileName ? (
                   <div className="flex flex-col items-center gap-2">
@@ -275,14 +299,14 @@ const LabTestsPage = () => {
                   <div className="flex flex-col items-center gap-2">
                     <Upload className="w-8 h-8 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">{t.uploadLabFile}</p>
-                    <p className="text-xs text-muted-foreground">PDF, JSON, TXT, CSV</p>
+                    <p className="text-xs text-muted-foreground">PDF, JSON, TXT, CSV, JPG, PNG</p>
                   </div>
                 )}
               </div>
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.json,.txt,.csv"
+                accept=".pdf,.json,.txt,.csv,.jpg,.jpeg,.png,.webp,image/*"
                 onChange={handleFileUpload}
                 className="hidden"
               />

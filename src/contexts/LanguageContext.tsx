@@ -153,6 +153,7 @@ const translations = {
     viewResults: "View Results",
     hideResults: "Hide",
     analyzedResults: "Analyzed results",
+    ocrProcessing: "Reading image (OCR)...",
   },
   ar: {
     appName: "+دواء",
@@ -303,6 +304,7 @@ const translations = {
     viewResults: "عرض النتائج",
     hideResults: "إخفاء",
     analyzedResults: "نتائج محللة",
+    ocrProcessing: "جاري قراءة الصورة (OCR)...",
   },
 };
 
