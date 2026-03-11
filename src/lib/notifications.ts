@@ -1,4 +1,5 @@
 import { store } from './store';
+import type { Medication } from '@/types';
 
 let timers: ReturnType<typeof setTimeout>[] = [];
 
@@ -25,14 +26,41 @@ function parseMinutes(reminderBefore: string): number {
   }
 }
 
-function showNotification(title: string, body: string, voiceEnabled: boolean) {
+function showGroupedNotification(meds: Medication[], isArabic: boolean, voiceEnabled: boolean) {
   if (Notification.permission !== 'granted') return;
-  
+
+  // Use first med's image as icon if available
+  const icon = meds.find(m => m.imageUrl)?.imageUrl || '/favicon.png';
+
+  let title: string;
+  let body: string;
+  let voiceText: string;
+
+  if (meds.length === 1) {
+    const med = meds[0];
+    title = isArabic ? '⏰ موعد الدواء' : '⏰ Medication Reminder';
+    body = isArabic
+      ? `الآن موعد جرعة دواء ${med.name} - ${med.dosage} ${med.form}`
+      : `Time to take ${med.name} - ${med.dosage} ${med.form}`;
+    voiceText = isArabic
+      ? `الآن موعد جرعة دواء ${med.name}`
+      : `Time to take your ${med.name}`;
+  } else {
+    const names = meds.map(m => m.name);
+    title = isArabic ? '⏰ موعد الأدوية' : '⏰ Medication Reminder';
+    body = isArabic
+      ? `الآن موعد جرعة الأدوية التالية: ${names.join('، ')}`
+      : `Time to take: ${names.join(', ')}`;
+    voiceText = isArabic
+      ? `الآن موعد جرعة الأدوية التالية: ${names.join('، و')}`
+      : `Time to take your medications: ${names.join(', and ')}`;
+  }
+
   const notification = new Notification(title, {
     body,
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
-    tag: `med-${Date.now()}`,
+    icon,
+    badge: '/favicon.png',
+    tag: `med-group-${Date.now()}`,
     requireInteraction: true,
   });
 
@@ -43,8 +71,8 @@ function showNotification(title: string, body: string, voiceEnabled: boolean) {
 
   // Voice notification
   if (voiceEnabled && 'speechSynthesis' in window) {
-    const utterance = new SpeechSynthesisUtterance(body);
-    utterance.lang = store.getSettings().language === 'ar' ? 'ar-SA' : 'en-US';
+    const utterance = new SpeechSynthesisUtterance(voiceText);
+    utterance.lang = isArabic ? 'ar-SA' : 'en-US';
     utterance.rate = 0.9;
     window.speechSynthesis.speak(utterance);
   }
@@ -64,6 +92,9 @@ export function scheduleMedicationNotifications() {
   const now = new Date();
   const isArabic = settings.language === 'ar';
 
+  // Group medications by their notify time
+  const timeGroups: Record<string, Medication[]> = {};
+
   medications.forEach((med) => {
     med.times.forEach((timeStr) => {
       const [hours, minutes] = timeStr.split(':').map(Number);
@@ -72,21 +103,24 @@ export function scheduleMedicationNotifications() {
       const doseTime = new Date();
       doseTime.setHours(hours, minutes, 0, 0);
 
-      // Subtract reminder offset
       const notifyTime = new Date(doseTime.getTime() - reminderMinutes * 60 * 1000);
       const delay = notifyTime.getTime() - now.getTime();
 
       if (delay > 0 && delay < 24 * 60 * 60 * 1000) {
-        const timer = setTimeout(() => {
-          const title = isArabic ? '⏰ موعد الدواء' : '⏰ Medication Reminder';
-          const body = isArabic
-            ? `حان وقت تناول ${med.name} - ${med.dosage} ${med.form}`
-            : `Time to take ${med.name} - ${med.dosage} ${med.form}`;
-          showNotification(title, body, settings.voiceNotifications);
-        }, delay);
-        timers.push(timer);
+        const key = notifyTime.getTime().toString();
+        if (!timeGroups[key]) timeGroups[key] = [];
+        timeGroups[key].push(med);
       }
     });
+  });
+
+  // Schedule grouped notifications
+  Object.entries(timeGroups).forEach(([timeKey, meds]) => {
+    const delay = parseInt(timeKey) - now.getTime();
+    const timer = setTimeout(() => {
+      showGroupedNotification(meds, isArabic, settings.voiceNotifications);
+    }, delay);
+    timers.push(timer);
   });
 
   // Schedule stock alerts (once per day at 9 AM)
@@ -96,7 +130,7 @@ export function scheduleMedicationNotifications() {
     stockCheckTime.setDate(stockCheckTime.getDate() + 1);
   }
   const stockDelay = stockCheckTime.getTime() - now.getTime();
-  
+
   const stockTimer = setTimeout(() => {
     medications.forEach((med) => {
       if (med.stock > 0 && med.stock <= Math.ceil(med.stock * 0.2 + 1)) {
@@ -104,7 +138,11 @@ export function scheduleMedicationNotifications() {
         const body = isArabic
           ? `مخزون ${med.name} منخفض: ${med.stock} متبقي`
           : `${med.name} stock is low: ${med.stock} remaining`;
-        showNotification(title, body, false);
+
+        if (Notification.permission === 'granted') {
+          const icon = med.imageUrl || '/favicon.png';
+          new Notification(title, { body, icon, badge: '/favicon.png', tag: `stock-${med.id}` });
+        }
       }
     });
   }, stockDelay);
