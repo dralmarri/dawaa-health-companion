@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Check, AlertCircle, CheckCircle2 } from "lucide-react";
 import ChipSelector from "@/components/ChipSelector";
 import { store } from "@/lib/store";
@@ -32,9 +32,11 @@ const MedicationNameInput = ({ name, setName, t }: MedNameProps) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Validate medication name with debounce
   useEffect(() => {
-    if (name.trim().length < 2) { setIsValid(false); return; }
+    if (name.trim().length < 2) {
+      setIsValid(false);
+      return;
+    }
     setChecking(true);
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
@@ -64,18 +66,20 @@ const MedicationNameInput = ({ name, setName, t }: MedNameProps) => {
         <input
           value={name}
           onChange={(e) => handleChange(e.target.value)}
-          onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+          onFocus={() => {
+            if (suggestions.length > 0) setShowSuggestions(true);
+          }}
           placeholder="e.g. Panadol, Aspirin..."
           className={`w-full px-4 py-3 rounded-xl border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 pe-10 ${
-            isValid ? "border-success focus:ring-success/30" : showWarning ? "border-warning focus:ring-warning/30" : "border-border focus:ring-ring"
+            isValid
+              ? "border-success focus:ring-success/30"
+              : showWarning
+                ? "border-warning focus:ring-warning/30"
+                : "border-border focus:ring-ring"
           }`}
         />
-        {isValid && (
-          <CheckCircle2 className="absolute top-1/2 -translate-y-1/2 end-3 w-5 h-5 text-success" />
-        )}
-        {showWarning && (
-          <AlertCircle className="absolute top-1/2 -translate-y-1/2 end-3 w-5 h-5 text-warning" />
-        )}
+        {isValid && <CheckCircle2 className="absolute top-1/2 -translate-y-1/2 end-3 w-5 h-5 text-success" />}
+        {showWarning && <AlertCircle className="absolute top-1/2 -translate-y-1/2 end-3 w-5 h-5 text-warning" />}
       </div>
 
       {showWarning && (
@@ -97,7 +101,10 @@ const MedicationNameInput = ({ name, setName, t }: MedNameProps) => {
             <button
               key={med}
               type="button"
-              onClick={() => { setName(med); setShowSuggestions(false); }}
+              onClick={() => {
+                setName(med);
+                setShowSuggestions(false);
+              }}
               className="w-full text-start px-4 py-2.5 text-foreground hover:bg-accent transition-colors first:rounded-t-xl last:rounded-b-xl text-sm"
             >
               {med}
@@ -111,6 +118,10 @@ const MedicationNameInput = ({ name, setName, t }: MedNameProps) => {
 
 const AddMedicationPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get("edit");
+  const editingMedication = editId ? store.getMedications().find((m) => m.id === editId) : null;
+
   const { t, isRTL } = useLanguage();
   const [step, setStep] = useState(1);
   const totalSteps = 4;
@@ -124,24 +135,50 @@ const AddMedicationPage = () => {
   const [notes, setNotes] = useState("");
   const [stock, setStock] = useState(30);
 
+  useEffect(() => {
+    if (!editingMedication) return;
+    setName(editingMedication.name);
+    setForm(editingMedication.form);
+    setDosage(editingMedication.dosage);
+    setFrequency(editingMedication.frequency);
+    setTimes(editingMedication.times);
+    setMealRelation(editingMedication.mealRelation);
+    setNotes(editingMedication.notes);
+    setStock(editingMedication.stock);
+  }, [editingMedication]);
+
   const formsMap: Record<string, string> = {
-    Pills: t.pills, Capsules: t.capsules, Liquid: t.liquid, Injection: t.injection,
-    Drops: t.drops, Cream: t.cream, Inhaler: t.inhaler, Patches: t.patches,
+    Pills: t.pills,
+    Capsules: t.capsules,
+    Liquid: t.liquid,
+    Injection: t.injection,
+    Drops: t.drops,
+    Cream: t.cream,
+    Inhaler: t.inhaler,
+    Patches: t.patches,
   };
   const formOptions = Object.keys(formsMap);
   const formLabels = Object.values(formsMap);
 
   const freqMap: Record<string, string> = {
-    "Once daily": t.onceDaily, "Twice daily": t.twiceDaily, "Three times daily": t.threeTimesDaily,
-    "Four times daily": t.fourTimesDaily, "Every X hours": t.everyXHours, "Specific days": t.specificDays,
-    "Every week": t.everyWeek, "Every 2 weeks": t.every2Weeks, "Every month": t.everyMonth,
+    "Once daily": t.onceDaily,
+    "Twice daily": t.twiceDaily,
+    "Three times daily": t.threeTimesDaily,
+    "Four times daily": t.fourTimesDaily,
+    "Every X hours": t.everyXHours,
+    "Specific days": t.specificDays,
+    "Every week": t.everyWeek,
+    "Every 2 weeks": t.every2Weeks,
+    "Every month": t.everyMonth,
   };
   const freqOptions = Object.keys(freqMap);
   const freqLabels = Object.values(freqMap);
 
   const mealMap: Record<string, string> = {
-    "No preference": t.noPreference, "Before meal": t.beforeMeal,
-    "After meal": t.afterMeal, "With meal": t.withMeal,
+    "No preference": t.noPreference,
+    "Before meal": t.beforeMeal,
+    "After meal": t.afterMeal,
+    "With meal": t.withMeal,
   };
   const mealOptions = Object.keys(mealMap);
   const mealLabels = Object.values(mealMap);
@@ -150,9 +187,16 @@ const AddMedicationPage = () => {
 
   const handleSave = () => {
     const med: Medication = {
-      id: crypto.randomUUID(),
-      name, form, dosage, frequency, times, mealRelation, notes, stock,
-      createdAt: new Date().toISOString(),
+      id: editingMedication?.id || crypto.randomUUID(),
+      name,
+      form,
+      dosage,
+      frequency,
+      times,
+      mealRelation,
+      notes,
+      stock,
+      createdAt: editingMedication?.createdAt || new Date().toISOString(),
     };
     store.saveMedication(med);
     navigate("/medications");
@@ -166,10 +210,10 @@ const AddMedicationPage = () => {
   return (
     <div className="min-h-screen flex flex-col max-w-lg mx-auto">
       <div className="flex items-center px-4 pt-4 pb-2">
-        <button onClick={() => step > 1 ? setStep(step - 1) : navigate(-1)} className="text-foreground">
+        <button onClick={() => (step > 1 ? setStep(step - 1) : navigate(-1))} className="text-foreground">
           <ArrowLeft className={`w-6 h-6 ${isRTL ? "rotate-180" : ""}`} />
         </button>
-        <h1 className="text-xl font-bold text-foreground mx-auto">{t.addMedication}</h1>
+        <h1 className="text-xl font-bold text-foreground mx-auto">{editingMedication ? (isRTL ? "تعديل الدواء" : "Edit Medication") : t.addMedication}</h1>
         <div className="w-6" />
       </div>
 
@@ -179,7 +223,9 @@ const AddMedicationPage = () => {
             <div key={i} className={`h-1 flex-1 rounded-full ${i < step ? "bg-primary" : "bg-border"}`} />
           ))}
         </div>
-        <p className="text-sm text-muted-foreground">{step}/{totalSteps} — {stepLabels[step - 1]}</p>
+        <p className="text-sm text-muted-foreground">
+          {step}/{totalSteps} — {stepLabels[step - 1]}
+        </p>
       </div>
 
       <div className="flex-1 px-4 py-4 overflow-y-auto">
@@ -201,7 +247,9 @@ const AddMedicationPage = () => {
               <label className="text-base font-bold text-foreground block mb-2">{t.dosage}</label>
               <div className="flex items-center gap-3">
                 <input
-                  type="number" min={1} value={dosage}
+                  type="number"
+                  min={1}
+                  value={dosage}
                   onChange={(e) => setDosage(Number(e.target.value))}
                   className="w-24 px-4 py-3 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
@@ -228,8 +276,14 @@ const AddMedicationPage = () => {
               <label className="text-base font-bold text-foreground block mb-2">{t.times}</label>
               {times.map((tVal, i) => (
                 <input
-                  key={i} type="time" value={tVal}
-                  onChange={(e) => { const n = [...times]; n[i] = e.target.value; setTimes(n); }}
+                  key={i}
+                  type="time"
+                  value={tVal}
+                  onChange={(e) => {
+                    const n = [...times];
+                    n[i] = e.target.value;
+                    setTimes(n);
+                  }}
                   className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground mb-2 focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               ))}
@@ -248,8 +302,10 @@ const AddMedicationPage = () => {
             <div>
               <label className="text-base font-bold text-foreground block mb-2">{t.notes}</label>
               <textarea
-                value={notes} onChange={(e) => setNotes(e.target.value)}
-                placeholder={t.notes + "..."} rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder={t.notes + "..."}
+                rows={3}
                 className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
               />
             </div>
@@ -262,7 +318,9 @@ const AddMedicationPage = () => {
               <label className="text-base font-bold text-foreground block mb-2">{t.currentStock}</label>
               <div className="flex items-center gap-3">
                 <input
-                  type="number" min={0} value={stock}
+                  type="number"
+                  min={0}
+                  value={stock}
                   onChange={(e) => setStock(Number(e.target.value))}
                   className="flex-1 px-4 py-3 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
@@ -290,7 +348,7 @@ const AddMedicationPage = () => {
 
       <div className="px-4 pb-6 pt-2">
         <button
-          onClick={() => step < totalSteps ? setStep(step + 1) : handleSave()}
+          onClick={() => (step < totalSteps ? setStep(step + 1) : handleSave())}
           disabled={!canNext()}
           className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-lg disabled:opacity-50"
         >
