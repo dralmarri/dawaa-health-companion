@@ -341,6 +341,11 @@ const AddMedicationPage = () => {
         {step === 4 && (
           <div>
             <h2 className="text-xl font-bold text-foreground text-center mb-6">{t.confirm}</h2>
+            {imageUrl && (
+              <div className="w-full h-40 rounded-2xl overflow-hidden mb-4 border border-border">
+                <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
+              </div>
+            )}
             <div className="bg-card rounded-2xl border border-border p-5 space-y-3">
               <div className="flex justify-between"><span className="text-muted-foreground">{t.medicationName}</span><span className="font-bold text-foreground flex items-center gap-1">{name} <Check className="w-4 h-4 text-primary" /></span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.form}</span><span className="font-bold text-foreground">{formsMap[form]}</span></div>
