@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarDays, FlaskConical, Users, FileText, Shield, Mail, Info, LogOut, Trash2, ChevronRight, ChevronLeft } from "lucide-react";
+import { CalendarDays, FlaskConical, Users, FileText, Shield, Mail, Info, LogOut, Trash2, ChevronRight, ChevronLeft, Bell } from "lucide-react";
 import { store } from "@/lib/store";
 import ChipSelector from "@/components/ChipSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { requestNotificationPermission, scheduleMedicationNotifications, getPermissionStatus } from "@/lib/notifications";
+import { toast } from "sonner";
 import type { AppSettings } from "@/types";
 
 const SettingsPage = () => {
@@ -11,10 +13,27 @@ const SettingsPage = () => {
   const { t, lang, setLang, isRTL } = useLanguage();
   const [settings, setSettings] = useState<AppSettings>(store.getSettings());
 
-  const update = (partial: Partial<AppSettings>) => {
+  const update = async (partial: Partial<AppSettings>) => {
     const next = { ...settings, ...partial };
     setSettings(next);
     store.saveSettings(next);
+
+    // Re-schedule notifications on any settings change
+    if (partial.notifications !== undefined || partial.reminderBefore !== undefined) {
+      if (next.notifications) {
+        const granted = await requestNotificationPermission();
+        if (granted) {
+          const count = scheduleMedicationNotifications();
+          toast.success(isRTL ? `تم تفعيل التنبيهات (${count} تنبيه مجدول)` : `Notifications enabled (${count} scheduled)`);
+        } else {
+          toast.error(isRTL ? 'يرجى السماح بالتنبيهات من إعدادات المتصفح' : 'Please allow notifications in browser settings');
+          setSettings({ ...next, notifications: false });
+          store.saveSettings({ ...next, notifications: false });
+        }
+      } else {
+        scheduleMedicationNotifications(); // clears all
+      }
+    }
   };
 
   const Chevron = isRTL ? ChevronLeft : ChevronRight;
