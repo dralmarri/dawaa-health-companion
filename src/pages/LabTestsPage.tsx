@@ -1,12 +1,19 @@
 import { useState, useRef } from "react";
-import { FlaskConical, X, Upload, FileText, AlertTriangle, CheckCircle2, ArrowDown, ArrowUp, Loader2 } from "lucide-react";
+import { FlaskConical, X, Upload, FileText, AlertTriangle, CheckCircle2, ArrowDown, ArrowUp, Loader2, Plus, Trash2, Search } from "lucide-react";
 import { store } from "@/lib/store";
 import { format } from "date-fns";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { extractLabValues, parseJsonLabResults, type AnalyzedResult } from "@/lib/lab-references";
+import { extractLabValues, parseJsonLabResults, analyzeValue, labReferences, type AnalyzedResult } from "@/lib/lab-references";
 import type { LabTest } from "@/types";
+
+interface ManualEntry {
+  id: string;
+  testName: string;
+  value: string;
+  isCustom: boolean;
+}
 
 const LabTestsPage = () => {
   const { t, isRTL } = useLanguage();
@@ -21,6 +28,67 @@ const LabTestsPage = () => {
   const [showResults, setShowResults] = useState<string | null>(null);
   const [savedResults, setSavedResults] = useState<Record<string, AnalyzedResult[]>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Manual entry state
+  const [manualEntries, setManualEntries] = useState<ManualEntry[]>([]);
+  const [showTestPicker, setShowTestPicker] = useState(false);
+  const [testSearch, setTestSearch] = useState("");
+  const [customTestName, setCustomTestName] = useState("");
+  const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
+  const [entryMode, setEntryMode] = useState<"file" | "manual">("file");
+
+  const addManualEntry = (testName: string, isCustom: boolean) => {
+    const entry: ManualEntry = { id: crypto.randomUUID(), testName, value: "", isCustom };
+    setManualEntries((prev) => [...prev, entry]);
+    setShowTestPicker(false);
+    setTestSearch("");
+    setCustomTestName("");
+  };
+
+  const updateEntryValue = (id: string, value: string) => {
+    setManualEntries((prev) => prev.map((e) => (e.id === id ? { ...e, value } : e)));
+  };
+
+  const removeEntry = (id: string) => {
+    setManualEntries((prev) => prev.filter((e) => e.id !== id));
+  };
+
+  const getManualResults = (): AnalyzedResult[] => {
+    return manualEntries
+      .filter((e) => e.value.trim() !== "")
+      .map((e) => {
+        const numValue = parseFloat(e.value);
+        if (isNaN(numValue)) return null;
+        const analyzed = analyzeValue(e.testName, numValue);
+        if (analyzed) return analyzed;
+        // Custom test - no reference range
+        return {
+          testName: e.testName,
+          value: numValue,
+          unit: "",
+          normalRange: { min: 0, max: 0 },
+          status: "normal" as const,
+          category: t.other,
+        };
+      })
+      .filter(Boolean) as AnalyzedResult[];
+  };
+
+  const filteredTests = labReferences.filter(
+    (ref) =>
+      ref.name.toLowerCase().includes(testSearch.toLowerCase()) ||
+      ref.aliases.some((a) => a.toLowerCase().includes(testSearch.toLowerCase())) ||
+      ref.category.toLowerCase().includes(testSearch.toLowerCase())
+  );
+
+  // Group by category
+  const groupedTests = filteredTests.reduce((acc, ref) => {
+    if (!acc[ref.category]) acc[ref.category] = [];
+    acc[ref.category].push(ref);
+    return acc;
+  }, {} as Record<string, typeof labReferences>);
+
+  const alreadyAdded = new Set(manualEntries.map((e) => e.testName));
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -46,7 +114,6 @@ const LabTestsPage = () => {
         const results = extractLabValues(text);
         setAnalysisResults(results);
       } else if (file.type.startsWith("image/")) {
-        // OCR for images
         setOcrProgress(0);
         const { createWorker } = await import("tesseract.js");
         const worker = await createWorker("eng", undefined, {
@@ -68,40 +135,47 @@ const LabTestsPage = () => {
       setOcrProgress(0);
     }
 
-    // Reset file input
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSave = () => {
     if (!name.trim()) return;
     const testId = crypto.randomUUID();
+
+    const allResults = entryMode === "manual" ? getManualResults() : analysisResults;
+
     const test: LabTest = {
       id: testId,
       name: name.trim(),
-      notes: notes + (analysisResults.length > 0 ? `\n[${t.analyzedResults}: ${analysisResults.length}]` : ""),
+      notes: notes + (allResults.length > 0 ? `\n[${t.analyzedResults}: ${allResults.length}]` : ""),
       date: new Date().toISOString(),
     };
     store.saveLabTest(test);
 
-    if (analysisResults.length > 0) {
-      // Save results to localStorage
-      const allResults = JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}");
-      allResults[testId] = analysisResults;
-      localStorage.setItem("dawaa_lab_results", JSON.stringify(allResults));
-      setSavedResults((prev) => ({ ...prev, [testId]: analysisResults }));
+    if (allResults.length > 0) {
+      const stored = JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}");
+      stored[testId] = allResults;
+      localStorage.setItem("dawaa_lab_results", JSON.stringify(stored));
+      setSavedResults((prev) => ({ ...prev, [testId]: allResults }));
     }
 
     setTests(store.getLabTests());
+    resetForm();
+  };
+
+  const resetForm = () => {
     setShowForm(false);
     setName("");
     setNotes("");
     setAnalysisResults([]);
     setFileName("");
+    setManualEntries([]);
+    setEntryMode("file");
+    setShowTestPicker(false);
   };
 
   const handleDelete = (id: string) => {
     store.deleteLabTest(id);
-    // Also delete saved results
     const allResults = JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}");
     delete allResults[id];
     localStorage.setItem("dawaa_lab_results", JSON.stringify(allResults));
@@ -138,7 +212,6 @@ const LabTestsPage = () => {
 
     return (
       <div className="space-y-3 mt-3">
-        {/* Summary */}
         <div className="flex gap-2 flex-wrap">
           <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-500/10 text-green-600">
             ✅ {t.normalResults}: {normal.length}
@@ -150,7 +223,6 @@ const LabTestsPage = () => {
           )}
         </div>
 
-        {/* Abnormal first */}
         {abnormal.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-bold text-destructive flex items-center gap-1">
@@ -177,7 +249,6 @@ const LabTestsPage = () => {
           </div>
         )}
 
-        {/* Normal results collapsed */}
         {normal.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-bold text-green-600 flex items-center gap-1">
@@ -201,6 +272,8 @@ const LabTestsPage = () => {
       </div>
     );
   };
+
+  const manualResults = entryMode === "manual" ? getManualResults() : [];
 
   return (
     <div className="pb-24">
@@ -253,7 +326,7 @@ const LabTestsPage = () => {
           <div className="bg-card rounded-2xl border border-border p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-foreground">{t.addLabTest}</h2>
-              <button onClick={() => { setShowForm(false); setAnalysisResults([]); setFileName(""); }}>
+              <button onClick={resetForm}>
                 <X className="w-5 h-5 text-foreground" />
               </button>
             </div>
@@ -263,57 +336,224 @@ const LabTestsPage = () => {
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. CBC, TSH, ALT"
+                placeholder="e.g. CBC, Lipid Panel"
                 className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
 
-            {/* File Upload */}
-            <div>
-              <label className="text-base font-bold text-foreground block mb-2">
-                {t.uploadFile}
-              </label>
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
+            {/* Entry Mode Tabs */}
+            <div className="flex rounded-xl bg-muted p-1 gap-1">
+              <button
+                onClick={() => setEntryMode("file")}
+                className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${
+                  entryMode === "file" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                }`}
               >
-                {analyzing ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                    <p className="text-sm text-muted-foreground">
-                      {ocrProgress > 0 ? `${t.ocrProcessing} ${ocrProgress}%` : t.analyzingFile}
-                    </p>
-                    {ocrProgress > 0 && (
-                      <div className="w-full bg-muted rounded-full h-2 mt-1">
-                        <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${ocrProgress}%` }} />
+                📁 {t.uploadFile}
+              </button>
+              <button
+                onClick={() => setEntryMode("manual")}
+                className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${
+                  entryMode === "manual" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                }`}
+              >
+                ✏️ {t.manualEntry}
+              </button>
+            </div>
+
+            {/* File Upload Mode */}
+            {entryMode === "file" && (
+              <div>
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                >
+                  {analyzing ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                      <p className="text-sm text-muted-foreground">
+                        {ocrProgress > 0 ? `${t.ocrProcessing} ${ocrProgress}%` : t.analyzingFile}
+                      </p>
+                      {ocrProgress > 0 && (
+                        <div className="w-full bg-muted rounded-full h-2 mt-1">
+                          <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${ocrProgress}%` }} />
+                        </div>
+                      )}
+                    </div>
+                  ) : fileName ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <FileText className="w-8 h-8 text-primary" />
+                      <p className="text-sm font-medium text-foreground">{fileName}</p>
+                      <p className="text-xs text-muted-foreground">{t.clickToChange}</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload className="w-8 h-8 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">{t.uploadLabFile}</p>
+                      <p className="text-xs text-muted-foreground">PDF, JSON, TXT, CSV, JPG, PNG</p>
+                    </div>
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.json,.txt,.csv,.jpg,.jpeg,.png,.webp,image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </div>
+            )}
+
+            {/* Manual Entry Mode */}
+            {entryMode === "manual" && (
+              <div className="space-y-3">
+                {/* Added entries */}
+                {manualEntries.map((entry) => {
+                  const ref = labReferences.find((r) => r.name === entry.testName);
+                  const numVal = parseFloat(entry.value);
+                  const isOutOfRange = ref && !isNaN(numVal) && (numVal < ref.normalRange.min || numVal > ref.normalRange.max);
+
+                  return (
+                    <div
+                      key={entry.id}
+                      className={`rounded-xl border p-3 ${
+                        isOutOfRange ? "border-destructive/30 bg-destructive/5" : "border-border bg-card/50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-foreground">{entry.testName}</span>
+                          {ref && (
+                            <span className="text-xs text-muted-foreground">
+                              ({ref.unit} • {ref.normalRange.min}-{ref.normalRange.max})
+                            </span>
+                          )}
+                          {entry.isCustom && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-accent text-accent-foreground">{t.custom}</span>
+                          )}
+                        </div>
+                        <button onClick={() => removeEntry(entry.id)} className="text-destructive/60 hover:text-destructive">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
-                    )}
-                  </div>
-                ) : fileName ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <FileText className="w-8 h-8 text-primary" />
-                    <p className="text-sm font-medium text-foreground">{fileName}</p>
-                    <p className="text-xs text-muted-foreground">{t.clickToChange}</p>
-                  </div>
+                      <input
+                        type="number"
+                        step="any"
+                        value={entry.value}
+                        onChange={(e) => updateEntryValue(entry.id, e.target.value)}
+                        placeholder={t.enterValue}
+                        className={`w-full px-3 py-2 rounded-lg border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
+                          isOutOfRange ? "border-destructive/40" : "border-border"
+                        }`}
+                      />
+                      {isOutOfRange && ref && (
+                        <p className="text-xs text-destructive mt-1">
+                          {numVal > ref.normalRange.max ? `⬆ ${t.aboveNormal}` : `⬇ ${t.belowNormal}`}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Add test button */}
+                {!showTestPicker ? (
+                  <button
+                    onClick={() => setShowTestPicker(true)}
+                    className="w-full py-3 rounded-xl border-2 border-dashed border-border text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors flex items-center justify-center gap-2 text-sm font-bold"
+                  >
+                    <Plus className="w-4 h-4" /> {t.addTestItem}
+                  </button>
                 ) : (
-                  <div className="flex flex-col items-center gap-2">
-                    <Upload className="w-8 h-8 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">{t.uploadLabFile}</p>
-                    <p className="text-xs text-muted-foreground">PDF, JSON, TXT, CSV, JPG, PNG</p>
+                  <div className="rounded-xl border border-border bg-card p-3 space-y-3">
+                    {/* Search */}
+                    <div className="relative">
+                      <Search className="w-4 h-4 absolute top-3 text-muted-foreground" style={{ [isRTL ? "right" : "left"]: "12px" }} />
+                      <input
+                        value={testSearch}
+                        onChange={(e) => setTestSearch(e.target.value)}
+                        placeholder={t.searchTests}
+                        autoFocus
+                        className="w-full px-4 py-2 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+                        style={{ [isRTL ? "paddingRight" : "paddingLeft"]: "36px" }}
+                      />
+                    </div>
+
+                    {/* Test list grouped by category */}
+                    <div className="max-h-60 overflow-y-auto space-y-2">
+                      {Object.entries(groupedTests).map(([category, refs]) => (
+                        <div key={category}>
+                          <p className="text-xs font-bold text-muted-foreground px-1 mb-1">{category}</p>
+                          <div className="space-y-1">
+                            {refs.map((ref) => (
+                              <button
+                                key={ref.name}
+                                disabled={alreadyAdded.has(ref.name)}
+                                onClick={() => addManualEntry(ref.name, false)}
+                                className={`w-full text-start px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${
+                                  alreadyAdded.has(ref.name)
+                                    ? "bg-muted text-muted-foreground opacity-50"
+                                    : "hover:bg-primary/10 text-foreground"
+                                }`}
+                              >
+                                <span className="font-medium">{ref.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {ref.normalRange.min}-{ref.normalRange.max} {ref.unit}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Custom test name */}
+                    <div className="border-t border-border pt-3">
+                      <p className="text-xs font-bold text-muted-foreground mb-2">{t.customTest}</p>
+                      <div className="flex gap-2">
+                        <input
+                          value={customTestName}
+                          onChange={(e) => setCustomTestName(e.target.value)}
+                          placeholder={t.enterCustomTestName}
+                          className="flex-1 px-3 py-2 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+                        />
+                        <button
+                          onClick={() => {
+                            if (customTestName.trim()) {
+                              addManualEntry(customTestName.trim(), true);
+                            }
+                          }}
+                          disabled={!customTestName.trim()}
+                          className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50"
+                        >
+                          {t.add}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => { setShowTestPicker(false); setTestSearch(""); }}
+                      className="w-full py-2 text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      {t.cancel}
+                    </button>
+                  </div>
+                )}
+
+                {/* Manual results preview */}
+                {manualResults.length > 0 && (
+                  <div className="bg-muted/50 rounded-xl p-4">
+                    <h3 className="font-bold text-foreground mb-2 flex items-center gap-2">
+                      <FlaskConical className="w-5 h-5 text-primary" />
+                      {t.analysisResults} ({manualResults.length} {t.testsFound})
+                    </h3>
+                    <ResultsView results={manualResults} />
                   </div>
                 )}
               </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.json,.txt,.csv,.jpg,.jpeg,.png,.webp,image/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </div>
+            )}
 
-            {/* Analysis Results Preview */}
-            {analysisResults.length > 0 && (
+            {/* File analysis results */}
+            {entryMode === "file" && analysisResults.length > 0 && (
               <div className="bg-muted/50 rounded-xl p-4">
                 <h3 className="font-bold text-foreground mb-2 flex items-center gap-2">
                   <FlaskConical className="w-5 h-5 text-primary" />
@@ -323,7 +563,7 @@ const LabTestsPage = () => {
               </div>
             )}
 
-            {analysisResults.length === 0 && fileName && !analyzing && (
+            {entryMode === "file" && analysisResults.length === 0 && fileName && !analyzing && (
               <div className="bg-muted/50 rounded-xl p-4 text-center">
                 <AlertTriangle className="w-8 h-8 text-orange-500 mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">{t.noResultsFound}</p>
@@ -350,7 +590,7 @@ const LabTestsPage = () => {
                 {t.save}
               </button>
               <button
-                onClick={() => { setShowForm(false); setName(""); setNotes(""); setAnalysisResults([]); setFileName(""); }}
+                onClick={resetForm}
                 className="flex-1 py-3 rounded-2xl bg-muted text-foreground font-bold"
               >
                 {t.cancel}
