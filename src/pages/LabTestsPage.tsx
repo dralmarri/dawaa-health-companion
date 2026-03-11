@@ -132,7 +132,8 @@ const LabTestsPage = () => {
           const pdfjsLib = await import("pdfjs-dist");
           const arrayBuffer = await file.arrayBuffer();
           const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-          const allOcrResults: typeof results = [];
+          // Collect all OCR text from all pages first, then extract once
+          let allOcrText = "";
           
           for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
@@ -144,9 +145,11 @@ const LabTestsPage = () => {
             await page.render({ canvasContext: ctx, viewport }).promise;
             const dataUrl = canvas.toDataURL("image/png");
             const ocrText = await runOcr(dataUrl);
-            const pageResults = extractLabValues(ocrText);
-            allOcrResults.push(...pageResults);
+            allOcrText += "\n" + ocrText;
           }
+          
+          const allOcrResults = extractLabValues(allOcrText);
+          console.log("=== OCR EXTRACTED ===", allOcrResults.length, allOcrResults.map(r => `${r.testName}=${r.value}`));
           
           if (allOcrResults.length > results.length) {
             results = allOcrResults;

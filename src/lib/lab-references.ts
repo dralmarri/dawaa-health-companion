@@ -24,11 +24,11 @@ export const labReferences: LabReference[] = [
   { name: "Monocytes %", aliases: ["mono", "mono %", "monocyte count", "monocytes", "monocytes %"], unit: "%", normalRange: { min: 2, max: 10 }, category: "CBC" },
   { name: "Eosinophils %", aliases: ["eos", "eos %", "eosinophil count", "eosinophils", "eosinophils %"], unit: "%", normalRange: { min: 0, max: 6 }, category: "CBC" },
   { name: "Basophils %", aliases: ["baso", "baso %", "basophil count", "basophils", "basophils %"], unit: "%", normalRange: { min: 0, max: 2 }, category: "CBC" },
-  { name: "Neutrophils #", aliases: ["neut #", "neutrophils #", "neutrophil abs", "absolute neutrophils"], unit: "×10³/µL", normalRange: { min: 2.0, max: 7.0 }, category: "CBC" },
-  { name: "Lymphocytes #", aliases: ["lymph #", "lymphocytes #", "lymphocyte abs", "absolute lymphocytes"], unit: "×10³/µL", normalRange: { min: 1.0, max: 3.0 }, category: "CBC" },
-  { name: "Monocytes #", aliases: ["mono #", "monocytes #", "monocyte abs", "absolute monocytes"], unit: "×10³/µL", normalRange: { min: 0.0, max: 2.0 }, category: "CBC" },
-  { name: "Eosinophils #", aliases: ["eos #", "eosinophils #", "eosinophil abs", "absolute eosinophils"], unit: "×10³/µL", normalRange: { min: 0.02, max: 0.50 }, category: "CBC" },
-  { name: "Basophils #", aliases: ["baso #", "basophils #", "basophil abs", "absolute basophils"], unit: "×10³/µL", normalRange: { min: 0.0, max: 0.3 }, category: "CBC" },
+  { name: "Neutrophils #", aliases: ["neut #", "neutrophils #", "neutrophil abs", "absolute neutrophils", "neutrophils abs", "neut abs"], unit: "×10³/µL", normalRange: { min: 2.0, max: 7.0 }, category: "CBC" },
+  { name: "Lymphocytes #", aliases: ["lymph #", "lymphocytes #", "lymphocyte abs", "absolute lymphocytes", "lymphocytes abs", "lymph abs"], unit: "×10³/µL", normalRange: { min: 1.0, max: 3.0 }, category: "CBC" },
+  { name: "Monocytes #", aliases: ["mono #", "monocytes #", "monocyte abs", "absolute monocytes", "monocytes abs", "mono abs"], unit: "×10³/µL", normalRange: { min: 0.0, max: 2.0 }, category: "CBC" },
+  { name: "Eosinophils #", aliases: ["eos #", "eosinophils #", "eosinophil abs", "absolute eosinophils", "eosinophils abs", "eos abs"], unit: "×10³/µL", normalRange: { min: 0.02, max: 0.50 }, category: "CBC" },
+  { name: "Basophils #", aliases: ["baso #", "basophils #", "basophil abs", "absolute basophils", "basophils abs", "baso abs"], unit: "×10³/µL", normalRange: { min: 0.0, max: 0.3 }, category: "CBC" },
   { name: "Nucleated RBC", aliases: ["nucleated rbcs", "nrbc", "nucleated red blood cells"], unit: "%", normalRange: { min: 0, max: 2 }, category: "CBC" },
 
   // Liver Function
