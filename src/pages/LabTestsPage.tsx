@@ -213,11 +213,6 @@ const LabTestsPage = () => {
         const text = await file.text();
         const results = extractLabValues(text);
         setAnalysisResults(results);
-      } else if (file.type.startsWith("image/")) {
-        const ocrText = await runOcr(file);
-        const results = extractLabValues(ocrText);
-        console.log("=== EXTRACTED RESULTS ===", results.length, results.map(r => r.testName));
-        setAnalysisResults(results);
       }
     } catch (err) {
       console.error("File analysis error:", err);
@@ -488,7 +483,7 @@ const LabTestsPage = () => {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".pdf,.json,.txt,.csv,.jpg,.jpeg,.png,.webp,image/*"
+                  accept=".pdf,.json,.txt,.csv"
                   onChange={handleFileUpload}
                   className="hidden"
                 />
