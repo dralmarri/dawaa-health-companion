@@ -687,7 +687,7 @@ const LabTestsPage = () => {
             <div className="flex gap-3">
               <button
                 onClick={handleSave}
-                disabled={!name.trim()}
+                disabled={!canSave}
                 className="flex-1 py-3 rounded-2xl bg-primary text-primary-foreground font-bold disabled:opacity-50"
               >
                 {t.save}
