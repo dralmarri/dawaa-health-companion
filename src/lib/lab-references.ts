@@ -9,18 +9,18 @@ export interface LabReference {
 
 export const labReferences: LabReference[] = [
   // Complete Blood Count (CBC)
-  { name: "WBC", aliases: ["white blood cells", "white blood cell count", "wbc count", "leucocytes", "wbcs"], unit: "×10³/µL", normalRange: { min: 4.0, max: 11.0 }, category: "CBC" },
-  { name: "RBC", aliases: ["red blood cells", "red blood cell count", "rbc count", "erythrocytes", "rbcs"], unit: "×10⁶/µL", normalRange: { min: 4.5, max: 5.5 }, category: "CBC" },
-  { name: "Hemoglobin", aliases: ["hgb", "hb", "haemoglobin"], unit: "g/dL", normalRange: { min: 12.0, max: 17.5 }, category: "CBC" },
+  { name: "WBC", aliases: ["white blood cells", "white blood cell count", "wbc count", "leucocytes", "wbcs", "wacs"], unit: "×10³/µL", normalRange: { min: 4.0, max: 11.0 }, category: "CBC" },
+  { name: "RBC", aliases: ["red blood cells", "red blood cell count", "rbc count", "erythrocytes", "rbcs", "hicind"], unit: "×10⁶/µL", normalRange: { min: 4.5, max: 5.5 }, category: "CBC" },
+  { name: "Hemoglobin", aliases: ["hgb", "hb", "haemoglobin", "her"], unit: "g/dL", normalRange: { min: 12.0, max: 17.5 }, category: "CBC" },
   { name: "Hematocrit", aliases: ["hct", "packed cell volume", "pcv"], unit: "%", normalRange: { min: 36, max: 50 }, category: "CBC" },
-  { name: "Platelets", aliases: ["plt", "platelet count", "thrombocytes"], unit: "×10³/µL", normalRange: { min: 150, max: 400 }, category: "CBC" },
+  { name: "Platelets", aliases: ["plt", "platelet count", "thrombocytes", "platey", "platel"], unit: "×10³/µL", normalRange: { min: 150, max: 400 }, category: "CBC" },
   { name: "MCV", aliases: ["mean corpuscular volume"], unit: "fL", normalRange: { min: 80, max: 100 }, category: "CBC" },
   { name: "MCH", aliases: ["mean corpuscular hemoglobin"], unit: "pg", normalRange: { min: 27, max: 33 }, category: "CBC" },
-  { name: "MCHC", aliases: ["mean corpuscular hemoglobin concentration"], unit: "g/dL", normalRange: { min: 32, max: 36 }, category: "CBC" },
-  { name: "RDW", aliases: ["red cell distribution width", "rdw-cv", "rdw-sd"], unit: "%", normalRange: { min: 11.5, max: 14.5 }, category: "CBC" },
-  { name: "MPV", aliases: ["mean platelet volume"], unit: "fL", normalRange: { min: 6.0, max: 10.0 }, category: "CBC" },
+  { name: "MCHC", aliases: ["mean corpuscular hemoglobin concentration", "binche"], unit: "g/dL", normalRange: { min: 32, max: 36 }, category: "CBC" },
+  { name: "RDW", aliases: ["red cell distribution width", "rdw-cv", "rdw-sd", "row"], unit: "%", normalRange: { min: 11.5, max: 14.5 }, category: "CBC" },
+  { name: "MPV", aliases: ["mean platelet volume", "shey"], unit: "fL", normalRange: { min: 6.0, max: 10.0 }, category: "CBC" },
   { name: "Neutrophils %", aliases: ["neut", "neut %", "neutrophil count", "neutrophils", "neutrophils %"], unit: "%", normalRange: { min: 40, max: 70 }, category: "CBC" },
-  { name: "Lymphocytes %", aliases: ["lymph", "lymph %", "lymphocyte count", "lymphocytes", "lymphocytes %"], unit: "%", normalRange: { min: 20, max: 40 }, category: "CBC" },
+  { name: "Lymphocytes %", aliases: ["lymph", "lymph %", "lymphocyte count", "lymphocytes", "lymphocytes %", "mehocveae", "mehocvtae"], unit: "%", normalRange: { min: 20, max: 40 }, category: "CBC" },
   { name: "Monocytes %", aliases: ["mono", "mono %", "monocyte count", "monocytes", "monocytes %"], unit: "%", normalRange: { min: 2, max: 10 }, category: "CBC" },
   { name: "Eosinophils %", aliases: ["eos", "eos %", "eosinophil count", "eosinophils", "eosinophils %"], unit: "%", normalRange: { min: 0, max: 6 }, category: "CBC" },
   { name: "Basophils %", aliases: ["baso", "baso %", "basophil count", "basophils", "basophils %"], unit: "%", normalRange: { min: 0, max: 2 }, category: "CBC" },
@@ -158,65 +158,87 @@ function similarity(a: string, b: string): number {
   return (2 * intersection) / (aBigrams.size + bBigrams.size);
 }
 
-// Extract numbers from a line
-function extractNumbers(line: string): number[] {
-  const matches = line.match(/\d+\.?\d*/g);
-  return matches ? matches.map(Number).filter((n) => !isNaN(n)) : [];
-}
-
 // Extract test name-value pairs from text
 export function extractLabValues(text: string): AnalyzedResult[] {
   const results: AnalyzedResult[] = [];
   const matched = new Set<string>();
   
-  // Split into lines and process each
-  const lines = text.split(/\n/);
+  // Normalize OCR artifacts: § → %, # misread as 4, clean special chars
+  const normalized = text
+    .replace(/§/g, "%")
+    .replace(/[>•►▶]/g, " ");
+  
+  const lines = normalized.split(/\n/);
+
+  // First pass: separate % and # sections
+  // In CBC reports, % section comes first, then # section
+  let inHashSection = false;
 
   for (const rawLine of lines) {
-    // Clean line: remove >, bullets, special chars but keep structure
-    const line = rawLine.replace(/[>•►▶§]/g, " ").trim();
+    const line = rawLine.trim();
     if (!line || line.length < 3) continue;
 
-    // Extract all numbers from the line
-    const numbers = extractNumbers(line);
-    if (numbers.length === 0) continue;
+    // Detect transition to # section (lines with "x10^9/L" after # markers)
+    if (/neutrophils\s*#/i.test(line) || /neutrophils\s*4\b/i.test(line)) {
+      inHashSection = true;
+    }
 
-    // Get the text part before the first number
-    const firstNumMatch = line.match(/\d+\.?\d*/);
-    if (!firstNumMatch) continue;
-    const textPart = line.slice(0, firstNumMatch.index).trim().toLowerCase();
+    // Extract first number from line
+    const numMatch = line.match(/(\d+\.?\d*)/);
+    if (!numMatch) continue;
+    
+    const value = parseFloat(numMatch[1]);
+    if (isNaN(value)) continue;
+
+    // Get text before the number
+    let textPart = line.slice(0, numMatch.index).trim().toLowerCase();
+    // Remove common OCR noise
+    textPart = textPart.replace(/[^a-z0-9\s#%]/gi, "").trim();
     if (textPart.length < 1) continue;
 
-    // Try exact regex match first
+    // Determine if this is a # variant
+    const isHash = inHashSection || textPart.includes("#") || /\b4\s*$/.test(textPart);
+    // Clean the text part for matching
+    const cleanText = textPart.replace(/[#%4]\s*$/g, "").trim();
+
     let bestMatch: { ref: typeof labReferences[0]; value: number } | null = null;
     let bestScore = 0;
 
     for (const ref of labReferences) {
       if (matched.has(ref.name)) continue;
       
+      // Skip % tests when in # section and vice versa
+      if (isHash && ref.name.includes("%")) continue;
+      if (!isHash && ref.name.includes("#") && !textPart.includes("#")) continue;
+
       const allNames = [ref.name.toLowerCase(), ...ref.aliases.map(a => a.toLowerCase())];
       
       // Exact match
       for (const name of allNames) {
-        if (textPart === name || textPart.endsWith(name) || textPart.includes(name)) {
-          bestMatch = { ref, value: numbers[0] };
-          bestScore = 1;
+        const cleanName = name.replace(/[#%]/g, "").trim();
+        if (cleanText === cleanName || cleanText.endsWith(cleanName) || cleanText.includes(cleanName)) {
+          const score = 1;
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = { ref, value };
+          }
           break;
         }
       }
       if (bestScore === 1) break;
 
-      // Fuzzy match - try each alias
+      // Fuzzy match
       for (const name of allNames) {
-        const score = similarity(textPart, name);
-        if (score > bestScore && score >= 0.5) {
+        const cleanName = name.replace(/[#%]/g, "").trim();
+        const score = similarity(cleanText, cleanName);
+        if (score > bestScore && score >= 0.45) {
           bestScore = score;
-          bestMatch = { ref, value: numbers[0] };
+          bestMatch = { ref, value };
         }
       }
     }
 
-    if (bestMatch && bestScore >= 0.5) {
+    if (bestMatch && bestScore >= 0.45) {
       matched.add(bestMatch.ref.name);
       const analyzed = analyzeValue(bestMatch.ref.name, bestMatch.value);
       if (analyzed) results.push(analyzed);
