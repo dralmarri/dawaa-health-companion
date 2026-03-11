@@ -72,12 +72,12 @@ const BloodPressurePage = () => {
         )}
 
         {readings.length > 0 && (
-          <button onClick={() => window.print()} className="w-full py-3 rounded-2xl bg-info text-info-foreground font-semibold text-center">
+          <button onClick={() => window.print()} className="w-full py-3 rounded-2xl bg-info text-info-foreground font-semibold text-center print-hide">
             🖨️ {t.printReport}
           </button>
         )}
 
-        <div className="bg-card rounded-2xl border border-border p-5 space-y-4">
+        <div className="bg-card rounded-2xl border border-border p-5 space-y-4 print-hide">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-info rounded-xl flex items-center justify-center">
               <Heart className="w-5 h-5 text-info-foreground" fill="currentColor" />
@@ -138,7 +138,7 @@ const BloodPressurePage = () => {
           </button>
         </div>
 
-        <div className="bg-primary rounded-2xl p-5">
+        <div className="bg-primary rounded-2xl p-5 print-hide">
           <h3 className="text-lg font-bold text-primary-foreground mb-2">{t.medicalTip}</h3>
           <p className="text-primary-foreground/90 text-sm leading-relaxed">{t.medicalTipText}</p>
         </div>
