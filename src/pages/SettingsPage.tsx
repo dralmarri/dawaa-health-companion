@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarDays, FlaskConical, Users, FileText, Shield, Mail, Info, LogOut, Trash2, ChevronRight, ChevronLeft, Bell } from "lucide-react";
+import { CalendarDays, FlaskConical, FileText, Shield, Mail, Info, LogOut, Trash2, ChevronRight, ChevronLeft, Bell } from "lucide-react";
 import { store } from "@/lib/store";
 import ChipSelector from "@/components/ChipSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
