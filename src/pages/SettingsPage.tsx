@@ -119,17 +119,8 @@ const SettingsPage = () => {
             onChange={(v) => update({ reminderBefore: reminderKeys[reminderLabels.indexOf(v)] || v })} />
         </div>
 
-        {/* Escalation */}
-        <div className="bg-card rounded-2xl border border-border p-5 flex items-center justify-between">
-          <div className="flex-1">
-            <h3 className="font-bold text-foreground">{t.escalationOnMissed}</h3>
-            <p className="text-sm text-muted-foreground">{t.escalationDesc}</p>
-          </div>
-          <button onClick={() => update({ escalationOnMissed: !settings.escalationOnMissed })}
-            className={`w-12 h-7 rounded-full transition-colors relative flex-shrink-0 ${settings.escalationOnMissed ? "bg-primary" : "bg-border"}`}>
-            <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-card shadow transition-all ${settings.escalationOnMissed ? "ltr:right-0.5 rtl:left-0.5" : "ltr:left-0.5 rtl:right-0.5"}`} />
-          </button>
-        </div>
+
+
 
         {/* Menu Items */}
         <div className="bg-card rounded-2xl border border-border divide-y divide-border">

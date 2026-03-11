@@ -16,15 +16,7 @@ export function useNotifications() {
     };
     init();
 
-    // Check escalation every 5 minutes
-    const escalationInterval = setInterval(() => {
-      checkAndEscalate();
-    }, 5 * 60 * 1000);
-
-    // Also check once on load
-    checkAndEscalate();
-
-    return () => clearInterval(escalationInterval);
+    return () => {};
   }, []);
 
   const reschedule = useCallback(() => {
