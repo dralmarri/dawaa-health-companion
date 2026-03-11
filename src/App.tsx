@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import BottomNav from "@/components/BottomNav";
 import HomePage from "./pages/HomePage";
 import MedicationsPage from "./pages/MedicationsPage";
@@ -24,22 +25,24 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => (
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<AppLayout><HomePage /></AppLayout>} />
-          <Route path="/medications" element={<AppLayout><MedicationsPage /></AppLayout>} />
-          <Route path="/medications/add" element={<AddMedicationPage />} />
-          <Route path="/blood-pressure" element={<AppLayout><BloodPressurePage /></AppLayout>} />
-          <Route path="/appointments" element={<AppLayout><AppointmentsPage /></AppLayout>} />
-          <Route path="/lab-tests" element={<AppLayout><LabTestsPage /></AppLayout>} />
-          <Route path="/history" element={<AppLayout><HistoryPage /></AppLayout>} />
-          <Route path="/settings" element={<AppLayout><SettingsPage /></AppLayout>} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <LanguageProvider>
+      <TooltipProvider>
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<AppLayout><HomePage /></AppLayout>} />
+            <Route path="/medications" element={<AppLayout><MedicationsPage /></AppLayout>} />
+            <Route path="/medications/add" element={<AddMedicationPage />} />
+            <Route path="/blood-pressure" element={<AppLayout><BloodPressurePage /></AppLayout>} />
+            <Route path="/appointments" element={<AppLayout><AppointmentsPage /></AppLayout>} />
+            <Route path="/lab-tests" element={<AppLayout><LabTestsPage /></AppLayout>} />
+            <Route path="/history" element={<AppLayout><HistoryPage /></AppLayout>} />
+            <Route path="/settings" element={<AppLayout><SettingsPage /></AppLayout>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </LanguageProvider>
   </QueryClientProvider>
 );
 

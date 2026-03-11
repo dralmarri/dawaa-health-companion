@@ -2,9 +2,11 @@ import { useNavigate } from "react-router-dom";
 import { Pill, Heart, CalendarDays, FlaskConical, Plus } from "lucide-react";
 import { store } from "@/lib/store";
 import { format } from "date-fns";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const medications = store.getMedications();
   const doseRecords = store.getDoseRecords();
   const today = format(new Date(), "yyyy-MM-dd");
@@ -15,46 +17,41 @@ const HomePage = () => {
   const missed = todayRecords.filter((d) => d.status === "missed").length;
 
   const quickLinks = [
-    { label: "Medications", icon: Pill, path: "/medications", color: "text-primary" },
-    { label: "Blood Pressure", icon: Heart, path: "/blood-pressure", color: "text-heart" },
-    { label: "Appointments", icon: CalendarDays, path: "/appointments", color: "text-warning" },
-    { label: "Lab Tests", icon: FlaskConical, path: "/lab-tests", color: "text-primary" },
+    { label: t.medications, icon: Pill, path: "/medications", color: "text-primary" },
+    { label: t.bloodPressure, icon: Heart, path: "/blood-pressure", color: "text-heart" },
+    { label: t.appointments, icon: CalendarDays, path: "/appointments", color: "text-warning" },
+    { label: t.labTests, icon: FlaskConical, path: "/lab-tests", color: "text-primary" },
   ];
 
   return (
     <div className="pb-24 px-4">
-      {/* Header */}
       <div className="pt-6 pb-4">
         <h1 className="text-3xl font-bold text-foreground">
-          dawaa+ <span className="text-2xl">💊</span>
+          {t.appName} <span className="text-2xl">💊</span>
         </h1>
         <p className="text-muted-foreground">
           {format(new Date(), "EEEE, MMMM d, yyyy")}
         </p>
       </div>
 
-      {/* Today's Summary */}
       <div className="mb-6">
-        <h2 className="text-lg font-bold text-foreground mb-3">
-          Today's Medication Summary
-        </h2>
+        <h2 className="text-lg font-bold text-foreground mb-3">{t.todaySummary}</h2>
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-secondary rounded-2xl p-4 text-center">
             <div className="text-3xl font-bold text-summary-schedule">{scheduled}</div>
-            <div className="text-sm text-muted-foreground mt-1">Schedule</div>
+            <div className="text-sm text-muted-foreground mt-1">{t.schedule}</div>
           </div>
           <div className="bg-summary-taken rounded-2xl p-4 text-center">
             <div className="text-3xl font-bold text-summary-taken-foreground">{taken}</div>
-            <div className="text-sm text-muted-foreground mt-1">Taken</div>
+            <div className="text-sm text-muted-foreground mt-1">{t.taken}</div>
           </div>
           <div className="bg-summary-missed rounded-2xl p-4 text-center">
             <div className="text-3xl font-bold text-summary-missed-foreground">{missed}</div>
-            <div className="text-sm text-muted-foreground mt-1">Missed</div>
+            <div className="text-sm text-muted-foreground mt-1">{t.missed}</div>
           </div>
         </div>
       </div>
 
-      {/* Quick Links */}
       <div className="grid grid-cols-2 gap-3 mb-6">
         {quickLinks.map((link) => (
           <button
@@ -68,12 +65,11 @@ const HomePage = () => {
         ))}
       </div>
 
-      {/* Upcoming Doses */}
       <div className="mb-6">
-        <h2 className="text-lg font-bold text-foreground mb-3">Upcoming Doses</h2>
+        <h2 className="text-lg font-bold text-foreground mb-3">{t.upcomingDoses}</h2>
         <div className="bg-card rounded-2xl border border-border p-6">
           {medications.length === 0 ? (
-            <p className="text-center text-muted-foreground">No doses today</p>
+            <p className="text-center text-muted-foreground">{t.noDosesToday}</p>
           ) : (
             <div className="space-y-3">
               {medications.slice(0, 3).map((med) => (
@@ -92,10 +88,9 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* FAB */}
       <button
         onClick={() => navigate("/medications/add")}
-        className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center z-40"
+        className="fixed bottom-20 ltr:right-4 rtl:left-4 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center z-40"
       >
         <Plus className="w-7 h-7" />
       </button>
