@@ -113,7 +113,7 @@ const AppointmentsPage = () => {
       )}
 
       {showForm && (
-        <div className="fixed inset-0 bg-foreground/50 z-50 flex items-end">
+        <div className="fixed inset-0 bg-foreground/50 z-[60] flex items-end">
           <div className="bg-card w-full max-h-[90vh] rounded-t-3xl overflow-y-auto p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-foreground">{t.addAppointment}</h2>
