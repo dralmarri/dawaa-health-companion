@@ -120,8 +120,6 @@ const SettingsPage = () => {
         </div>
 
 
-
-
         {/* Menu Items */}
         <div className="bg-card rounded-2xl border border-border divide-y divide-border">
           {menuItems.map((item) => (
