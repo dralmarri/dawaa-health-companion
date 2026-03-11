@@ -120,7 +120,11 @@ const LabTestsPage = () => {
       if (file.type === "application/pdf") {
         const { extractTextFromPdf } = await import("@/lib/pdf-parser");
         const text = await extractTextFromPdf(file);
+        console.log("=== PDF RAW TEXT ===");
+        console.log(text);
+        console.log("=== END PDF TEXT ===");
         let results = extractLabValues(text);
+        console.log("=== PDF EXTRACTED ===", results.length, results.map(r => `${r.testName}=${r.value}`));
         
         // If PDF text extraction found few results, it might be a scanned/image PDF - try OCR
         if (results.length < 3) {
