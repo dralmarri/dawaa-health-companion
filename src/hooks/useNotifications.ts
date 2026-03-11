@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { requestNotificationPermission, scheduleMedicationNotifications, startNotificationLoop, getPermissionStatus } from '@/lib/notifications';
-import { checkAndEscalate } from '@/lib/escalation';
+// import { checkAndEscalate } from '@/lib/escalation'; // disabled temporarily
 import { store } from '@/lib/store';
 
 export function useNotifications() {
