@@ -8,7 +8,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import type { BloodPressureReading } from "@/types";
 
 const BloodPressurePage = () => {
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const [readings, setReadings] = useState(store.getReadings());
   const [systolic, setSystolic] = useState("");
   const [diastolic, setDiastolic] = useState("");

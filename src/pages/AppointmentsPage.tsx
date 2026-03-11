@@ -9,7 +9,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import type { Appointment } from "@/types";
 
 const AppointmentsPage = () => {
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const [appointments, setAppointments] = useState(store.getAppointments());
   const [showForm, setShowForm] = useState(false);
   const [tab, setTab] = useState<"all" | "upcoming" | "completed">("all");
