@@ -74,13 +74,21 @@ const HomePage = () => {
             <div className="space-y-3">
               {medications.slice(0, 3).map((med) => (
                 <div key={med.id} className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-foreground">{med.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {med.dosage} {med.form} · {med.times[0]}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    {med.imageUrl ? (
+                      <img src={med.imageUrl} alt={med.name} className="w-10 h-10 rounded-lg object-cover border border-border" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Pill className="w-5 h-5 text-primary" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-semibold text-foreground">{med.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {med.dosage} {med.form} · {med.times[0]}
+                      </p>
+                    </div>
                   </div>
-                  <Pill className="w-5 h-5 text-primary" />
                 </div>
               ))}
             </div>
