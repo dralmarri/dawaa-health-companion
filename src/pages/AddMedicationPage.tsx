@@ -83,14 +83,7 @@ const AddMedicationPage = () => {
       <div className="flex-1 px-4 py-4 overflow-y-auto">
         {step === 1 && (
           <div className="space-y-5">
-            <div>
-              <label className="text-base font-bold text-foreground block mb-2">{t.medicationName} *</label>
-              <input
-                value={name} onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Panadol, Aspirin..."
-                className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
+            <MedicationNameInput name={name} setName={setName} t={t} />
             <div>
               <label className="text-base font-bold text-foreground block mb-2">{t.form}</label>
               <ChipSelector
