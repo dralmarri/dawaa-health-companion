@@ -153,6 +153,7 @@ const translations = {
     viewResults: "View Results",
     hideResults: "Hide",
     analyzedResults: "Analyzed results",
+    ocrProcessing: "Reading image (OCR)...",
   },
   ar: {
     appName: "+دواء",
