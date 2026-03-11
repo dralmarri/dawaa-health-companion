@@ -95,7 +95,7 @@ const BloodPressurePage = () => {
             <div className="flex items-center mt-1">
               <span className="text-sm text-muted-foreground me-2">mmHg</span>
               <input type="number" value={systolic} onChange={(e) => setSystolic(e.target.value)} placeholder="120"
-                className="flex-1 px-4 py-3 rounded-xl bg-accent text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-lg" />
+                className="flex-1 min-w-0 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl bg-accent text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base sm:text-lg" />
             </div>
           </div>
 
