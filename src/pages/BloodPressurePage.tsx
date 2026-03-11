@@ -133,7 +133,7 @@ const BloodPressurePage = () => {
           </div>
 
           <button onClick={handleSave} disabled={!systolic || !diastolic || !heartRate}
-            className="w-full py-3 rounded-2xl bg-info text-info-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-50">
+            className="w-full py-2.5 sm:py-3 rounded-2xl bg-info text-info-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base">
             <Save className="w-5 h-5" /> {t.saveReading}
           </button>
         </div>
