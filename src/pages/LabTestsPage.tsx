@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { FlaskConical, X, Upload, AlertTriangle, CheckCircle2, ArrowDown, ArrowUp, Plus, Trash2, Search, Image } from "lucide-react";
+import { FlaskConical, X, AlertTriangle, CheckCircle2, ArrowDown, ArrowUp, Plus, Trash2, Search, Image, ZoomIn, Printer, Eye, EyeOff } from "lucide-react";
 import { store } from "@/lib/store";
 import { format } from "date-fns";
 import PageHeader from "@/components/PageHeader";
@@ -26,6 +26,7 @@ const LabTestsPage = () => {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const [attachedImageName, setAttachedImageName] = useState("");
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
   // Manual entry state
   const [manualEntries, setManualEntries] = useState<ManualEntry[]>([]);
@@ -110,19 +111,16 @@ const LabTestsPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     setAttachedImageName(file.name);
-    
     if (file.type.startsWith("image/")) {
       try {
         const compressed = await compressImage(file);
         setAttachedImage(compressed);
       } catch {
-        // Fallback to raw if compression fails
         const reader = new FileReader();
         reader.onload = () => setAttachedImage(reader.result as string);
         reader.readAsDataURL(file);
       }
     } else if (file.type === "application/pdf") {
-      // For PDFs, store just a marker - too large for localStorage
       setAttachedImage("pdf:" + file.name);
     }
     if (imageInputRef.current) imageInputRef.current.value = "";
@@ -132,6 +130,7 @@ const LabTestsPage = () => {
     if (!name.trim()) return;
     const testId = crypto.randomUUID();
     const allResults = getManualResults();
+    const testNumber = tests.length + 1;
 
     const test: LabTest = {
       id: testId,
@@ -140,22 +139,19 @@ const LabTestsPage = () => {
       fileUrl: attachedImage || undefined,
       date: new Date().toISOString(),
     };
-    
+
     try {
       store.saveLabTest(test);
-
       if (allResults.length > 0) {
         const stored = JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}");
         stored[testId] = allResults;
         localStorage.setItem("dawaa_lab_results", JSON.stringify(stored));
         setSavedResults((prev) => ({ ...prev, [testId]: allResults }));
       }
-
       setTests(store.getLabTests());
       resetForm();
     } catch (err) {
       console.error("Save error:", err);
-      // If localStorage quota exceeded, try saving without image
       if (attachedImage && attachedImage.length > 1000) {
         test.fileUrl = undefined;
         try {
@@ -206,6 +202,53 @@ const LabTestsPage = () => {
       setSavedResults((prev) => ({ ...prev, [testId]: allResults[testId] }));
     }
     setShowResults(showResults === testId ? null : testId);
+  };
+
+  const handlePrint = (test: LabTest) => {
+    const results = savedResults[test.id] || JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}")[test.id];
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const resultsHtml = results ? results.map((r: AnalyzedResult) => `
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:8px;font-weight:bold;">${r.testName}</td>
+        <td style="padding:8px;text-align:center;">${r.value} ${r.unit}</td>
+        <td style="padding:8px;text-align:center;">${r.normalRange.min} - ${r.normalRange.max}</td>
+        <td style="padding:8px;text-align:center;color:${r.status === 'normal' ? '#22c55e' : r.status === 'high' ? '#ef4444' : '#f97316'};font-weight:bold;">
+          ${r.status === 'normal' ? '✓' : r.status === 'high' ? '⬆ High' : '⬇ Low'}
+        </td>
+      </tr>
+    `).join("") : "";
+
+    const imageHtml = test.fileUrl && !test.fileUrl.startsWith("pdf:")
+      ? `<div style="margin:20px 0;text-align:center;"><img src="${test.fileUrl}" style="max-width:100%;max-height:500px;border:1px solid #ddd;border-radius:8px;" /></div>`
+      : "";
+
+    printWindow.document.write(`
+      <html dir="${isRTL ? 'rtl' : 'ltr'}">
+      <head><title>${test.name}</title></head>
+      <body style="font-family:Arial,sans-serif;padding:20px;max-width:800px;margin:0 auto;">
+        <h1 style="color:#333;border-bottom:2px solid #0ea5e9;padding-bottom:10px;">${test.name}</h1>
+        <p style="color:#666;">${format(new Date(test.date), "yyyy/MM/dd - hh:mm a")}</p>
+        ${test.notes ? `<p style="color:#666;margin:10px 0;">${test.notes}</p>` : ""}
+        ${imageHtml}
+        ${results && results.length > 0 ? `
+          <table style="width:100%;border-collapse:collapse;margin-top:20px;">
+            <thead>
+              <tr style="background:#f1f5f9;border-bottom:2px solid #e2e8f0;">
+                <th style="padding:10px;text-align:${isRTL ? 'right' : 'left'};">${isRTL ? 'الفحص' : 'Test'}</th>
+                <th style="padding:10px;text-align:center;">${isRTL ? 'النتيجة' : 'Result'}</th>
+                <th style="padding:10px;text-align:center;">${isRTL ? 'المعدل الطبيعي' : 'Normal Range'}</th>
+                <th style="padding:10px;text-align:center;">${isRTL ? 'الحالة' : 'Status'}</th>
+              </tr>
+            </thead>
+            <tbody>${resultsHtml}</tbody>
+          </table>
+        ` : ""}
+      </body></html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
   };
 
   const getStatusIcon = (status: string) => {
@@ -292,6 +335,28 @@ const LabTestsPage = () => {
   return (
     <div className="pb-24">
       <PageHeader title={t.labTests} showBack onAdd={() => setShowForm(true)} />
+      
+      {/* Fullscreen Image Viewer */}
+      {fullscreenImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setFullscreenImage(null)}
+        >
+          <button
+            onClick={() => setFullscreenImage(null)}
+            className="absolute top-4 right-4 bg-white/20 text-white rounded-full p-2 hover:bg-white/30 z-10"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={fullscreenImage}
+            alt="Lab test"
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
       {tests.length === 0 && !showForm ? (
         <EmptyState
           icon={<FlaskConical className="w-16 h-16" />}
@@ -302,44 +367,100 @@ const LabTestsPage = () => {
         />
       ) : (
         <div className="px-4 space-y-3 mt-4">
-          {tests.map((test) => {
+          {/* Section title */}
+          {tests.length > 0 && !showForm && (
+            <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+              📋 {isRTL ? "التحاليل السابقة" : "Previous Tests"} ({tests.length})
+            </h2>
+          )}
+
+          {tests.map((test, index) => {
             const hasResults = savedResults[test.id] || JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}")[test.id];
+            const testNumber = tests.length - index;
+            const hasImage = test.fileUrl && !test.fileUrl.startsWith("pdf:");
+            const hasPdf = test.fileUrl && test.fileUrl.startsWith("pdf:");
+
             return (
-              <div key={test.id} className="bg-card rounded-2xl border border-border p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-foreground">{test.name}</h3>
-                    <p className="text-sm text-muted-foreground">{format(new Date(test.date), "MMM d, yyyy")}</p>
-                    {test.notes && <p className="text-sm text-muted-foreground mt-1">{test.notes}</p>}
+              <div key={test.id} className="bg-card rounded-2xl border border-border overflow-hidden">
+                {/* Header */}
+                <div className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full">
+                          #{testNumber}
+                        </span>
+                        <h3 className="font-bold text-foreground">{test.name}</h3>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        📅 {format(new Date(test.date), "yyyy/MM/dd - hh:mm a")}
+                      </p>
+                      {test.notes && <p className="text-sm text-muted-foreground mt-1">📝 {test.notes}</p>}
+                    </div>
+                    <button onClick={() => handleDelete(test.id)} className="text-destructive/60 hover:text-destructive p-1">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                  <div className="flex items-center gap-2">
+
+                  {/* Action buttons */}
+                  <div className="flex gap-2 mt-3 flex-wrap">
+                    {hasImage && (
+                      <button
+                        onClick={() => setFullscreenImage(test.fileUrl!)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-colors"
+                      >
+                        <ZoomIn className="w-3.5 h-3.5" />
+                        {isRTL ? "عرض الصورة" : "View Image"}
+                      </button>
+                    )}
+                    {hasPdf && (
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-xs font-bold">
+                        📄 {test.fileUrl!.replace("pdf:", "")}
+                      </span>
+                    )}
                     {hasResults && (
                       <button
                         onClick={() => loadSavedResults(test.id)}
-                        className="text-primary hover:text-primary/80 text-sm font-bold px-2 py-1 rounded-lg bg-primary/10"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-colors"
                       >
-                        {showResults === test.id ? t.hideResults : t.viewResults}
+                        {showResults === test.id ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        {showResults === test.id ? (isRTL ? "إخفاء" : "Hide") : (isRTL ? "عرض النتائج" : "Results")}
                       </button>
                     )}
-                    <button onClick={() => handleDelete(test.id)} className="text-destructive/60 hover:text-destructive">
-                      🗑️
-                    </button>
+                    {(hasResults || hasImage) && (
+                      <button
+                        onClick={() => handlePrint(test)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-xs font-bold hover:bg-accent hover:text-accent-foreground transition-colors"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        {isRTL ? "طباعة" : "Print"}
+                      </button>
+                    )}
                   </div>
                 </div>
-                {/* Show attached image */}
-                {test.fileUrl && !test.fileUrl.startsWith("pdf:") && (
-                  <div className="mt-3">
-                    <img src={test.fileUrl} alt={test.name} className="rounded-xl max-h-60 w-full object-contain border border-border" />
+
+                {/* Image thumbnail */}
+                {hasImage && (
+                  <div
+                    className="relative cursor-pointer group border-t border-border"
+                    onClick={() => setFullscreenImage(test.fileUrl!)}
+                  >
+                    <img
+                      src={test.fileUrl}
+                      alt={test.name}
+                      className="w-full max-h-40 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                      <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
                   </div>
                 )}
-                {test.fileUrl && test.fileUrl.startsWith("pdf:") && (
-                  <div className="mt-3 rounded-xl border border-border bg-muted/50 p-3 flex items-center gap-2">
-                    <span className="text-lg">📄</span>
-                    <span className="text-sm text-muted-foreground">{test.fileUrl.replace("pdf:", "")}</span>
-                  </div>
-                )}
+
+                {/* Results */}
                 {showResults === test.id && savedResults[test.id] && (
-                  <ResultsView results={savedResults[test.id]} />
+                  <div className="p-4 border-t border-border">
+                    <ResultsView results={savedResults[test.id]} />
+                  </div>
                 )}
               </div>
             );
@@ -347,6 +468,7 @@ const LabTestsPage = () => {
         </div>
       )}
 
+      {/* Add Form */}
       {showForm && (
         <div className="px-4 mt-4">
           <div className="bg-card rounded-2xl border border-border p-5 space-y-4">
@@ -362,24 +484,30 @@ const LabTestsPage = () => {
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. CBC, Lipid Panel"
+                placeholder={isRTL ? "مثال: CBC, فحص شامل" : "e.g. CBC, Lipid Panel"}
                 className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
 
             {/* Attach Image */}
             <div>
-              <label className="text-base font-bold text-foreground block mb-2">📷 {isRTL ? "إرفاق صورة" : "Attach Image"}</label>
+              <label className="text-base font-bold text-foreground block mb-2">📷 {isRTL ? "إرفاق صورة التحليل" : "Attach Lab Image"}</label>
               {attachedImage ? (
-                <div className="relative">
-                  <img src={attachedImage} alt="attached" className="rounded-xl max-h-48 w-full object-contain border border-border" />
+                <div className="relative rounded-xl border border-border overflow-hidden">
+                  {attachedImage.startsWith("pdf:") ? (
+                    <div className="p-4 flex items-center gap-2 bg-muted/50">
+                      <span className="text-2xl">📄</span>
+                      <span className="text-sm font-medium text-foreground">{attachedImage.replace("pdf:", "")}</span>
+                    </div>
+                  ) : (
+                    <img src={attachedImage} alt="preview" className="w-full max-h-48 object-contain bg-muted/30" />
+                  )}
                   <button
                     onClick={() => { setAttachedImage(null); setAttachedImageName(""); }}
                     className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1"
                   >
                     <X className="w-4 h-4" />
                   </button>
-                  <p className="text-xs text-muted-foreground mt-1 text-center">{attachedImageName}</p>
                 </div>
               ) : (
                 <button
@@ -387,7 +515,7 @@ const LabTestsPage = () => {
                   className="w-full border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors flex flex-col items-center gap-2"
                 >
                   <Image className="w-6 h-6 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">{t.uploadLabFile || "Tap to attach lab image"}</p>
+                  <p className="text-sm text-muted-foreground">{isRTL ? "اضغط لإرفاق صورة" : "Tap to attach image"}</p>
                   <p className="text-xs text-muted-foreground">JPG, PNG, WebP, PDF</p>
                 </button>
               )}
@@ -403,7 +531,7 @@ const LabTestsPage = () => {
             {/* Manual Entry */}
             <div className="space-y-3">
               <label className="text-base font-bold text-foreground block">📝 {t.manualEntry}</label>
-              
+
               {manualEntries.map((entry) => {
                 const ref = labReferences.find((r) => r.name === entry.testName);
                 const numVal = parseFloat(entry.value);
@@ -510,9 +638,7 @@ const LabTestsPage = () => {
                       />
                       <button
                         onClick={() => {
-                          if (customTestName.trim()) {
-                            addManualEntry(customTestName.trim(), true);
-                          }
+                          if (customTestName.trim()) addManualEntry(customTestName.trim(), true);
                         }}
                         disabled={!customTestName.trim()}
                         className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50"
