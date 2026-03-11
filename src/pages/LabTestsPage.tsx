@@ -125,7 +125,11 @@ const LabTestsPage = () => {
         });
         const { data } = await worker.recognize(file);
         await worker.terminate();
+        console.log("=== OCR RAW TEXT ===");
+        console.log(data.text);
+        console.log("=== END OCR TEXT ===");
         const results = extractLabValues(data.text);
+        console.log("=== EXTRACTED RESULTS ===", results.length, results.map(r => r.testName));
         setAnalysisResults(results);
       }
     } catch (err) {
