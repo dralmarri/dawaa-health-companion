@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, AlertCircle, CheckCircle2 } from "lucide-react";
 import ChipSelector from "@/components/ChipSelector";
 import { store } from "@/lib/store";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { searchMedications, isKnownMedication } from "@/lib/medications-db";
 import type { Medication } from "@/types";
 
 const AddMedicationPage = () => {
