@@ -56,7 +56,7 @@ export const labReferences: LabReference[] = [
 
   // Diabetes
   { name: "Glucose Fasting", aliases: ["fasting glucose", "fbs", "fasting blood sugar", "glucose"], unit: "mg/dL", normalRange: { min: 70, max: 100 }, category: "Diabetes" },
-  { name: "HbA1c", aliases: ["hemoglobin a1c", "glycated hemoglobin", "a1c", "hba1c"], unit: "%", normalRange: { min: 4.0, max: 5.6 }, category: "Diabetes" },
+  { name: "HbA1c", aliases: ["hemoglobin a1c", "glycated hemoglobin", "hba1c"], unit: "%", normalRange: { min: 4.0, max: 5.6 }, category: "Diabetes" },
 
   // Thyroid
   { name: "TSH", aliases: ["thyroid stimulating hormone", "thyrotropin"], unit: "mIU/L", normalRange: { min: 0.4, max: 4.0 }, category: "Thyroid" },
