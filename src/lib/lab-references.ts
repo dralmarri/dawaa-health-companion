@@ -158,19 +158,30 @@ function similarity(a: string, b: string): number {
   return (2 * intersection) / (aBigrams.size + bBigrams.size);
 }
 
-// Check if value is plausible for a given test (within 10x of normal range)
-function isPlausibleValue(ref: LabReference, value: number): boolean {
-  const max = ref.normalRange.max;
-  const min = ref.normalRange.min;
-  // Allow values up to 10x the max normal range, and down to 0
-  const upperBound = Math.max(max * 10, 1000);
-  return value >= 0 && value <= upperBound;
+// Maximum plausible values per unit type - prevents OCR number concatenation errors
+function getMaxPlausible(ref: LabReference): number {
+  const unit = ref.unit.toLowerCase();
+  // Percentage tests can never exceed 100
+  if (unit === "%" || ref.name.includes("%")) return 100;
+  // Use 5x max normal as upper bound (generous but catches garbage like 748, 237)
+  return Math.max(ref.normalRange.max * 5, ref.normalRange.max + 50);
 }
 
-// Extract all candidate numbers from a line
+function getMinPlausible(_ref: LabReference): number {
+  return 0;
+}
+
+// Check if value is plausible for a given test
+function isPlausibleValue(ref: LabReference, value: number): boolean {
+  return value >= getMinPlausible(ref) && value <= getMaxPlausible(ref);
+}
+
+// Extract all candidate numbers from a line (individual numbers, not concatenated)
 function extractCandidateNumbers(line: string): number[] {
   const nums: number[] = [];
-  const regex = /(\d+\.?\d*)/g;
+  // Match numbers that are separated by spaces, commas, dashes, or other non-digit chars
+  // Limit to reasonable length (max 6 chars including decimal)
+  const regex = /\b(\d{1,4}\.?\d{0,2})\b/g;
   let m;
   while ((m = regex.exec(line)) !== null) {
     const n = parseFloat(m[1]);
@@ -184,7 +195,7 @@ export function extractLabValues(text: string): AnalyzedResult[] {
   const results: AnalyzedResult[] = [];
   const matched = new Set<string>();
   
-  // Normalize OCR artifacts: § → %, # misread as 4, clean special chars
+  // Normalize OCR artifacts
   const normalized = text
     .replace(/§/g, "%")
     .replace(/[>•►▶]/g, " ");
@@ -202,14 +213,14 @@ export function extractLabValues(text: string): AnalyzedResult[] {
       inHashSection = true;
     }
 
-    // Get all numbers from the line
+    // Get all candidate numbers from the line
     const allNumbers = extractCandidateNumbers(line);
     if (allNumbers.length === 0) continue;
 
-    // Get text before the first number
-    const firstNumMatch = line.match(/\d/);
-    if (!firstNumMatch) continue;
-    let textPart = line.slice(0, firstNumMatch.index).trim().toLowerCase();
+    // Get text before the first digit
+    const firstDigitIdx = line.search(/\d/);
+    if (firstDigitIdx < 1) continue;
+    let textPart = line.slice(0, firstDigitIdx).trim().toLowerCase();
     textPart = textPart.replace(/[^a-z0-9\s#%]/gi, "").trim();
     if (textPart.length < 1) continue;
 
@@ -233,7 +244,6 @@ export function extractLabValues(text: string): AnalyzedResult[] {
       for (const name of allNames) {
         const cleanName = name.replace(/[#%]/g, "").trim();
         if (cleanText === cleanName || cleanText.endsWith(cleanName) || cleanText.includes(cleanName)) {
-          // Find the best plausible value from all numbers on this line
           const plausibleValue = findBestValue(ref, allNumbers);
           if (plausibleValue !== null) {
             bestScore = 1;
@@ -271,15 +281,9 @@ export function extractLabValues(text: string): AnalyzedResult[] {
 
 // Find the most plausible value for a test from candidate numbers
 function findBestValue(ref: LabReference, numbers: number[]): number | null {
-  // First, try to find a value that's within or close to normal range
   const plausible = numbers.filter(n => isPlausibleValue(ref, n));
   if (plausible.length === 0) return null;
-  
-  // Prefer the first plausible number (usually the result, not the reference range)
-  // But if first number seems like it could be a reference range number, use logic
-  if (plausible.length === 1) return plausible[0];
-  
-  // The first number is typically the result value
+  // Return first plausible number (typically the result value)
   return plausible[0];
 }
 
