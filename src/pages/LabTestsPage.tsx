@@ -306,7 +306,7 @@ const LabTestsPage = () => {
 
             {/* Attach Image */}
             <div>
-              <label className="text-base font-bold text-foreground block mb-2">📷 {t.attachImage || "Attach Image"}</label>
+              <label className="text-base font-bold text-foreground block mb-2">📷 {isRTL ? "إرفاق صورة" : "Attach Image"}</label>
               {attachedImage ? (
                 <div className="relative">
                   <img src={attachedImage} alt="attached" className="rounded-xl max-h-48 w-full object-contain border border-border" />
