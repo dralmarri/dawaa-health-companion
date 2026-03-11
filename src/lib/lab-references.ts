@@ -158,6 +158,27 @@ function similarity(a: string, b: string): number {
   return (2 * intersection) / (aBigrams.size + bBigrams.size);
 }
 
+// Check if value is plausible for a given test (within 10x of normal range)
+function isPlausibleValue(ref: LabReference, value: number): boolean {
+  const max = ref.normalRange.max;
+  const min = ref.normalRange.min;
+  // Allow values up to 10x the max normal range, and down to 0
+  const upperBound = Math.max(max * 10, 1000);
+  return value >= 0 && value <= upperBound;
+}
+
+// Extract all candidate numbers from a line
+function extractCandidateNumbers(line: string): number[] {
+  const nums: number[] = [];
+  const regex = /(\d+\.?\d*)/g;
+  let m;
+  while ((m = regex.exec(line)) !== null) {
+    const n = parseFloat(m[1]);
+    if (!isNaN(n)) nums.push(n);
+  }
+  return nums;
+}
+
 // Extract test name-value pairs from text
 export function extractLabValues(text: string): AnalyzedResult[] {
   const results: AnalyzedResult[] = [];
@@ -170,35 +191,30 @@ export function extractLabValues(text: string): AnalyzedResult[] {
   
   const lines = normalized.split(/\n/);
 
-  // First pass: separate % and # sections
-  // In CBC reports, % section comes first, then # section
   let inHashSection = false;
 
   for (const rawLine of lines) {
     const line = rawLine.trim();
     if (!line || line.length < 3) continue;
 
-    // Detect transition to # section (lines with "x10^9/L" after # markers)
+    // Detect transition to # section
     if (/neutrophils\s*#/i.test(line) || /neutrophils\s*4\b/i.test(line)) {
       inHashSection = true;
     }
 
-    // Extract first reasonable number from line (lab values rarely exceed 10000)
-    const numMatch = line.match(/(\d{1,5}\.?\d{0,3})\b/);
-    if (!numMatch) continue;
-    
-    const value = parseFloat(numMatch[1]);
-    if (isNaN(value) || value > 10000) continue;
+    // Get all numbers from the line
+    const allNumbers = extractCandidateNumbers(line);
+    if (allNumbers.length === 0) continue;
 
-    // Get text before the number
-    let textPart = line.slice(0, numMatch.index).trim().toLowerCase();
-    // Remove common OCR noise
+    // Get text before the first number
+    const firstNumMatch = line.match(/\d/);
+    if (!firstNumMatch) continue;
+    let textPart = line.slice(0, firstNumMatch.index).trim().toLowerCase();
     textPart = textPart.replace(/[^a-z0-9\s#%]/gi, "").trim();
     if (textPart.length < 1) continue;
 
     // Determine if this is a # variant
     const isHash = inHashSection || textPart.includes("#") || /\b4\s*$/.test(textPart);
-    // Clean the text part for matching
     const cleanText = textPart.replace(/[#%4]\s*$/g, "").trim();
 
     let bestMatch: { ref: typeof labReferences[0]; value: number } | null = null;
@@ -207,33 +223,38 @@ export function extractLabValues(text: string): AnalyzedResult[] {
     for (const ref of labReferences) {
       if (matched.has(ref.name)) continue;
       
-      // Skip % tests when in # section and vice versa
       if (isHash && ref.name.includes("%")) continue;
       if (!isHash && ref.name.includes("#") && !textPart.includes("#")) continue;
 
       const allNames = [ref.name.toLowerCase(), ...ref.aliases.map(a => a.toLowerCase())];
       
       // Exact match
+      let exactFound = false;
       for (const name of allNames) {
         const cleanName = name.replace(/[#%]/g, "").trim();
         if (cleanText === cleanName || cleanText.endsWith(cleanName) || cleanText.includes(cleanName)) {
-          const score = 1;
-          if (score > bestScore) {
-            bestScore = score;
-            bestMatch = { ref, value };
+          // Find the best plausible value from all numbers on this line
+          const plausibleValue = findBestValue(ref, allNumbers);
+          if (plausibleValue !== null) {
+            bestScore = 1;
+            bestMatch = { ref, value: plausibleValue };
+            exactFound = true;
           }
           break;
         }
       }
-      if (bestScore === 1) break;
+      if (exactFound) break;
 
       // Fuzzy match
       for (const name of allNames) {
         const cleanName = name.replace(/[#%]/g, "").trim();
         const score = similarity(cleanText, cleanName);
         if (score > bestScore && score >= 0.45) {
-          bestScore = score;
-          bestMatch = { ref, value };
+          const plausibleValue = findBestValue(ref, allNumbers);
+          if (plausibleValue !== null) {
+            bestScore = score;
+            bestMatch = { ref, value: plausibleValue };
+          }
         }
       }
     }
@@ -246,6 +267,20 @@ export function extractLabValues(text: string): AnalyzedResult[] {
   }
 
   return results;
+}
+
+// Find the most plausible value for a test from candidate numbers
+function findBestValue(ref: LabReference, numbers: number[]): number | null {
+  // First, try to find a value that's within or close to normal range
+  const plausible = numbers.filter(n => isPlausibleValue(ref, n));
+  if (plausible.length === 0) return null;
+  
+  // Prefer the first plausible number (usually the result, not the reference range)
+  // But if first number seems like it could be a reference range number, use logic
+  if (plausible.length === 1) return plausible[0];
+  
+  // The first number is typically the result value
+  return plausible[0];
 }
 
 // Parse JSON lab results (common formats)
