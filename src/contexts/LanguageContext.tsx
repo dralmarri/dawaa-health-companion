@@ -134,6 +134,8 @@ const translations = {
     deleteAccount: "Delete Account & All Data",
     markDone: "Mark done",
     done: "Done",
+    medicationNotFound: "Medication not found in database. Please verify the name.",
+    medicationVerified: "Medication name verified ✓",
   },
   ar: {
     appName: "+دواء",
@@ -265,6 +267,8 @@ const translations = {
     deleteAccount: "حذف الحساب وجميع البيانات",
     markDone: "تم",
     done: "مكتمل",
+    medicationNotFound: "الدواء غير موجود في قاعدة البيانات. يرجى التحقق من الاسم.",
+    medicationVerified: "تم التحقق من اسم الدواء ✓",
   },
 };
 
