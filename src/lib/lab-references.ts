@@ -202,16 +202,12 @@ export function extractLabValues(text: string): AnalyzedResult[] {
   
   const lines = normalized.split(/\n/);
 
-  let inHashSection = false;
+  // Track which base names (without % or #) have been matched with which variant
+  const matchedBaseNames = new Map<string, string>(); // baseName -> matched ref.name
 
   for (const rawLine of lines) {
     const line = rawLine.trim();
     if (!line || line.length < 3) continue;
-
-    // Detect transition to # section
-    if (/neutrophils\s*#/i.test(line) || /neutrophils\s*4\b/i.test(line)) {
-      inHashSection = true;
-    }
 
     // Get all candidate numbers from the line
     const allNumbers = extractCandidateNumbers(line);
@@ -224,18 +220,28 @@ export function extractLabValues(text: string): AnalyzedResult[] {
     textPart = textPart.replace(/[^a-z0-9\s#%]/gi, "").trim();
     if (textPart.length < 1) continue;
 
-    // Determine if this is a # variant
-    const isHash = inHashSection || textPart.includes("#") || /\b4\s*$/.test(textPart);
+    // Determine if this line explicitly has # marker
+    const hasHashMarker = textPart.includes("#");
     const cleanText = textPart.replace(/[#%4]\s*$/g, "").trim();
+
+    // Get the base name for differential detection
+    const baseName = cleanText.replace(/\s*(abs|absolute|count)\s*$/i, "").trim();
+
+    // Check if we already matched the % variant of this base name
+    // If so, this is likely the # (absolute) variant
+    const previouslyMatchedAs = matchedBaseNames.get(baseName);
+    const isSecondOccurrence = previouslyMatchedAs && previouslyMatchedAs.includes("%");
 
     let bestMatch: { ref: typeof labReferences[0]; value: number } | null = null;
     let bestScore = 0;
 
     for (const ref of labReferences) {
       if (matched.has(ref.name)) continue;
-      
-      if (isHash && ref.name.includes("%")) continue;
-      if (!isHash && ref.name.includes("#") && !textPart.includes("#")) continue;
+
+      // If this is a second occurrence of the same base name, only try # variants
+      if (isSecondOccurrence && ref.name.includes("%")) continue;
+      // If not a second occurrence and no hash marker, skip # variants  
+      if (!isSecondOccurrence && !hasHashMarker && ref.name.includes("#")) continue;
 
       const allNames = [ref.name.toLowerCase(), ...ref.aliases.map(a => a.toLowerCase())];
       
@@ -271,6 +277,7 @@ export function extractLabValues(text: string): AnalyzedResult[] {
 
     if (bestMatch && bestScore >= 0.45) {
       matched.add(bestMatch.ref.name);
+      matchedBaseNames.set(baseName, bestMatch.ref.name);
       const analyzed = analyzeValue(bestMatch.ref.name, bestMatch.value);
       if (analyzed) results.push(analyzed);
     }
