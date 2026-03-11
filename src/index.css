@@ -103,3 +103,18 @@
 [dir="rtl"] {
   font-family: 'Inter', 'Tajawal', sans-serif;
 }
+
+/* iOS safe areas */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Capacitor / iOS specific */
+body {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
+}
