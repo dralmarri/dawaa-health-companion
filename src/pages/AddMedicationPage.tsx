@@ -148,6 +148,7 @@ const AddMedicationPage = () => {
     setMealRelation(editingMedication.mealRelation);
     setNotes(editingMedication.notes);
     setStock(editingMedication.stock);
+    setImageUrl(editingMedication.imageUrl);
   }, [editingMedication]);
 
   const formsMap: Record<string, string> = {
