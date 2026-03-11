@@ -77,7 +77,7 @@ const BloodPressurePage = () => {
           </button>
         )}
 
-        <div className="bg-card rounded-2xl border border-border p-5 space-y-4 print-hide">
+        <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 space-y-3 sm:space-y-4 print-hide">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-info rounded-xl flex items-center justify-center">
               <Heart className="w-5 h-5 text-info-foreground" fill="currentColor" />
