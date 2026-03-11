@@ -207,7 +207,6 @@ const AddMedicationPage = () => {
     scheduleMedicationNotifications();
     navigate("/medications");
   };
-  };
 
   const canNext = () => {
     if (step === 1) return name.trim().length > 0;
