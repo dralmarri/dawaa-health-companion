@@ -483,7 +483,7 @@ const LabTestsPage = () => {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".pdf,.json,.txt,.csv,.jpg,.jpeg,.png,.webp,image/*"
+                  accept=".pdf,.json,.txt,.csv"
                   onChange={handleFileUpload}
                   className="hidden"
                 />
