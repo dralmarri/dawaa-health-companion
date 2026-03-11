@@ -129,10 +129,7 @@ const SettingsPage = () => {
               className="w-full flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-3">
                 <item.icon className="w-5 h-5 text-primary" />
-                <div className="text-start">
-                  <span className="text-foreground font-medium block">{item.label}</span>
-                  {item.subtitle && <span className="text-xs text-muted-foreground">{item.subtitle}</span>}
-                </div>
+                <span className="text-foreground font-medium">{item.label}</span>
               </div>
               <Chevron className="w-5 h-5 text-muted-foreground" />
             </button>
