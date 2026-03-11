@@ -327,9 +327,15 @@ const LabTestsPage = () => {
                   </div>
                 </div>
                 {/* Show attached image */}
-                {test.fileUrl && (
+                {test.fileUrl && !test.fileUrl.startsWith("pdf:") && (
                   <div className="mt-3">
                     <img src={test.fileUrl} alt={test.name} className="rounded-xl max-h-60 w-full object-contain border border-border" />
+                  </div>
+                )}
+                {test.fileUrl && test.fileUrl.startsWith("pdf:") && (
+                  <div className="mt-3 rounded-xl border border-border bg-muted/50 p-3 flex items-center gap-2">
+                    <span className="text-lg">📄</span>
+                    <span className="text-sm text-muted-foreground">{test.fileUrl.replace("pdf:", "")}</span>
                   </div>
                 )}
                 {showResults === test.id && savedResults[test.id] && (
