@@ -280,7 +280,14 @@ const LabTestsPage = () => {
                 {analyzing ? (
                   <div className="flex flex-col items-center gap-2">
                     <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                    <p className="text-sm text-muted-foreground">{t.analyzingFile}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {ocrProgress > 0 ? `${t.ocrProcessing} ${ocrProgress}%` : t.analyzingFile}
+                    </p>
+                    {ocrProgress > 0 && (
+                      <div className="w-full bg-muted rounded-full h-2 mt-1">
+                        <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${ocrProgress}%` }} />
+                      </div>
+                    )}
                   </div>
                 ) : fileName ? (
                   <div className="flex flex-col items-center gap-2">
@@ -292,14 +299,14 @@ const LabTestsPage = () => {
                   <div className="flex flex-col items-center gap-2">
                     <Upload className="w-8 h-8 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">{t.uploadLabFile}</p>
-                    <p className="text-xs text-muted-foreground">PDF, JSON, TXT, CSV</p>
+                    <p className="text-xs text-muted-foreground">PDF, JSON, TXT, CSV, JPG, PNG</p>
                   </div>
                 )}
               </div>
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.json,.txt,.csv"
+                accept=".pdf,.json,.txt,.csv,.jpg,.jpeg,.png,.webp,image/*"
                 onChange={handleFileUpload}
                 className="hidden"
               />
