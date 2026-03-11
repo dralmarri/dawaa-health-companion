@@ -136,6 +136,7 @@ const AddMedicationPage = () => {
   const [mealRelation, setMealRelation] = useState<Medication["mealRelation"]>("No preference");
   const [notes, setNotes] = useState("");
   const [stock, setStock] = useState(30);
+  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (!editingMedication) return;
