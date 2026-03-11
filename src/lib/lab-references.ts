@@ -11,7 +11,7 @@ export const labReferences: LabReference[] = [
   // Complete Blood Count (CBC)
   { name: "WBC", aliases: ["white blood cells", "white blood cell count", "wbc count", "leucocytes", "wbcs", "wacs"], unit: "×10³/µL", normalRange: { min: 4.0, max: 11.0 }, category: "CBC" },
   { name: "RBC", aliases: ["red blood cells", "red blood cell count", "rbc count", "erythrocytes", "rbcs", "hicind"], unit: "×10⁶/µL", normalRange: { min: 4.5, max: 5.5 }, category: "CBC" },
-  { name: "Hemoglobin", aliases: ["hgb", "hb", "haemoglobin", "her"], unit: "g/dL", normalRange: { min: 12.0, max: 17.5 }, category: "CBC" },
+  { name: "Hemoglobin", aliases: ["hgb", "haemoglobin", "hemoglobin"], unit: "g/dL", normalRange: { min: 12.0, max: 17.5 }, category: "CBC" },
   { name: "Hematocrit", aliases: ["hct", "packed cell volume", "pcv"], unit: "%", normalRange: { min: 36, max: 50 }, category: "CBC" },
   { name: "Platelets", aliases: ["plt", "platelet count", "thrombocytes", "platey", "platel"], unit: "×10³/µL", normalRange: { min: 150, max: 400 }, category: "CBC" },
   { name: "MCV", aliases: ["mean corpuscular volume"], unit: "fL", normalRange: { min: 80, max: 100 }, category: "CBC" },
