@@ -86,6 +86,19 @@
   }
 }
 
+/* Print styles */
+@media print {
+  .print-hide {
+    display: none !important;
+  }
+  .print-show {
+    display: block !important;
+  }
+  body {
+    background: white !important;
+  }
+}
+
 /* RTL support */
 [dir="rtl"] {
   font-family: 'Inter', 'Tajawal', sans-serif;
