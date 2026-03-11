@@ -1,20 +1,45 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pill, Heart, CalendarDays, FlaskConical, Plus } from "lucide-react";
+import { Pill, Heart, CalendarDays, FlaskConical, Plus, Check, X } from "lucide-react";
 import { store } from "@/lib/store";
+import { generateTodayDoses, markDoseTaken, markDoseMissed } from "@/lib/dose-tracker";
 import { format } from "date-fns";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { toast } from "sonner";
+import type { DoseRecord } from "@/types";
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
-  const medications = store.getMedications();
-  const doseRecords = store.getDoseRecords();
-  const today = format(new Date(), "yyyy-MM-dd");
-  const todayRecords = doseRecords.filter((d) => d.date === today);
+  const { t, isRTL } = useLanguage();
+  const [todayDoses, setTodayDoses] = useState<DoseRecord[]>([]);
 
-  const scheduled = todayRecords.length;
-  const taken = todayRecords.filter((d) => d.status === "taken").length;
-  const missed = todayRecords.filter((d) => d.status === "missed").length;
+  useEffect(() => {
+    const doses = generateTodayDoses();
+    setTodayDoses(doses);
+
+    // Refresh every minute to auto-mark missed
+    const interval = setInterval(() => {
+      setTodayDoses(generateTodayDoses());
+    }, 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const today = format(new Date(), "yyyy-MM-dd");
+  const scheduled = todayDoses.length;
+  const taken = todayDoses.filter((d) => d.status === "taken").length;
+  const missed = todayDoses.filter((d) => d.status === "missed").length;
+
+  const handleTaken = (id: string) => {
+    markDoseTaken(id);
+    setTodayDoses(generateTodayDoses());
+    toast.success(isRTL ? "تم تسجيل الجرعة ✓" : "Dose recorded ✓");
+  };
+
+  const handleMissed = (id: string) => {
+    markDoseMissed(id);
+    setTodayDoses(generateTodayDoses());
+  };
 
   const quickLinks = [
     { label: t.medications, icon: Pill, path: "/medications", color: "text-primary" },
@@ -22,6 +47,14 @@ const HomePage = () => {
     { label: t.appointments, icon: CalendarDays, path: "/appointments", color: "text-warning" },
     { label: t.labTests, icon: FlaskConical, path: "/lab-tests", color: "text-primary" },
   ];
+
+  // Sort doses: pending first, then by time
+  const sortedDoses = [...todayDoses].sort((a, b) => {
+    const statusOrder = { pending: 0, missed: 1, taken: 2 };
+    const statusDiff = statusOrder[a.status] - statusOrder[b.status];
+    if (statusDiff !== 0) return statusDiff;
+    return a.scheduledTime.localeCompare(b.scheduledTime);
+  });
 
   return (
     <div className="pb-24 px-4">
@@ -34,6 +67,7 @@ const HomePage = () => {
         </p>
       </div>
 
+      {/* Summary */}
       <div className="mb-6">
         <h2 className="text-lg font-bold text-foreground mb-3">{t.todaySummary}</h2>
         <div className="grid grid-cols-3 gap-3">
@@ -52,6 +86,7 @@ const HomePage = () => {
         </div>
       </div>
 
+      {/* Quick Links */}
       <div className="grid grid-cols-2 gap-3 mb-6">
         {quickLinks.map((link) => (
           <button
@@ -65,32 +100,64 @@ const HomePage = () => {
         ))}
       </div>
 
+      {/* Today's Doses */}
       <div className="mb-6">
         <h2 className="text-lg font-bold text-foreground mb-3">{t.upcomingDoses}</h2>
-        <div className="bg-card rounded-2xl border border-border p-6">
-          {medications.length === 0 ? (
-            <p className="text-center text-muted-foreground">{t.noDosesToday}</p>
+        <div className="bg-card rounded-2xl border border-border">
+          {sortedDoses.length === 0 ? (
+            <p className="text-center text-muted-foreground p-6">{t.noDosesToday}</p>
           ) : (
-            <div className="space-y-3">
-              {medications.slice(0, 3).map((med) => (
-                <div key={med.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {med.imageUrl ? (
-                      <img src={med.imageUrl} alt={med.name} className="w-10 h-10 rounded-lg object-cover border border-border" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Pill className="w-5 h-5 text-primary" />
+            <div className="divide-y divide-border">
+              {sortedDoses.map((dose) => {
+                const med = store.getMedications().find(m => m.id === dose.medicationId);
+                return (
+                  <div key={dose.id} className="flex items-center justify-between p-4">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {med?.imageUrl ? (
+                        <img src={med.imageUrl} alt={dose.medicationName} className="w-10 h-10 rounded-lg object-cover border border-border flex-shrink-0" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Pill className="w-5 h-5 text-primary" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-semibold text-foreground truncate">{dose.medicationName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {dose.scheduledTime}
+                          {med && ` · ${med.dosage} ${med.form}`}
+                        </p>
                       </div>
-                    )}
-                    <div>
-                      <p className="font-semibold text-foreground">{med.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {med.dosage} {med.form} · {med.times[0]}
-                      </p>
                     </div>
+
+                    {dose.status === "pending" ? (
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleTaken(dose.id)}
+                          className="w-9 h-9 rounded-full bg-summary-taken flex items-center justify-center hover:opacity-80 transition-opacity"
+                          aria-label={isRTL ? "تم أخذها" : "Mark taken"}
+                        >
+                          <Check className="w-5 h-5 text-summary-taken-foreground" />
+                        </button>
+                        <button
+                          onClick={() => handleMissed(dose.id)}
+                          className="w-9 h-9 rounded-full bg-summary-missed flex items-center justify-center hover:opacity-80 transition-opacity"
+                          aria-label={isRTL ? "فائتة" : "Mark missed"}
+                        >
+                          <X className="w-5 h-5 text-summary-missed-foreground" />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className={`text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0 ${
+                        dose.status === "taken"
+                          ? "bg-summary-taken text-summary-taken-foreground"
+                          : "bg-summary-missed text-summary-missed-foreground"
+                      }`}>
+                        {dose.status === "taken" ? (isRTL ? "✓ تم" : "✓ Taken") : (isRTL ? "✗ فائتة" : "✗ Missed")}
+                      </span>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
