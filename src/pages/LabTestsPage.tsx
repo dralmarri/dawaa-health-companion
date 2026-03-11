@@ -15,6 +15,7 @@ const LabTestsPage = () => {
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0);
   const [analysisResults, setAnalysisResults] = useState<AnalyzedResult[]>([]);
   const [fileName, setFileName] = useState("");
   const [showResults, setShowResults] = useState<string | null>(null);
