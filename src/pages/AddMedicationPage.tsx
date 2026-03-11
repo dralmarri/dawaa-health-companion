@@ -5,6 +5,7 @@ import ChipSelector from "@/components/ChipSelector";
 import { store } from "@/lib/store";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { searchMedications, isKnownMedication } from "@/lib/medications-db";
+import { scheduleMedicationNotifications } from "@/lib/notifications";
 import type { Medication } from "@/types";
 
 interface MedNameProps {
