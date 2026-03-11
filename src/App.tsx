@@ -14,6 +14,7 @@ import HistoryPage from "./pages/HistoryPage";
 import SettingsPage from "./pages/SettingsPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsOfUsePage from "./pages/TermsOfUsePage";
+import EmergencyContactPage from "./pages/EmergencyContactPage";
 import NotFound from "./pages/NotFound";
 import { useNotifications } from "./hooks/useNotifications";
 
