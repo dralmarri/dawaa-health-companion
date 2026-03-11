@@ -262,6 +262,7 @@ const AddMedicationPage = () => {
                 <span className="text-sm text-muted-foreground px-3 py-2 bg-accent rounded-lg">{formsMap[form]}</span>
               </div>
             </div>
+            <MedicationImageUpload imageUrl={imageUrl} onChange={setImageUrl} />
           </div>
         )}
 
