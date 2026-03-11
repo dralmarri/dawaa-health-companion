@@ -45,11 +45,27 @@ const LabTestsPage = () => {
         const text = await file.text();
         const results = extractLabValues(text);
         setAnalysisResults(results);
+      } else if (file.type.startsWith("image/")) {
+        // OCR for images
+        setOcrProgress(0);
+        const { createWorker } = await import("tesseract.js");
+        const worker = await createWorker("eng", undefined, {
+          logger: (m: { status: string; progress: number }) => {
+            if (m.status === "recognizing text") {
+              setOcrProgress(Math.round(m.progress * 100));
+            }
+          },
+        });
+        const { data } = await worker.recognize(file);
+        await worker.terminate();
+        const results = extractLabValues(data.text);
+        setAnalysisResults(results);
       }
     } catch (err) {
       console.error("File analysis error:", err);
     } finally {
       setAnalyzing(false);
+      setOcrProgress(0);
     }
 
     // Reset file input
