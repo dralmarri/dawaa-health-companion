@@ -39,8 +39,6 @@ const SettingsPage = () => {
   const Chevron = isRTL ? ChevronLeft : ChevronRight;
 
   const menuItems = [
-    { icon: Users, label: t.emergencyContact, path: "/emergency-contact",
-      subtitle: settings.emergencyContact ? settings.emergencyContact.name : (isRTL ? "لم يتم التعيين" : "Not set") },
     { icon: FlaskConical, label: t.labTests, path: "/lab-tests" },
     { icon: CalendarDays, label: t.appointments, path: "/appointments" },
   ];
