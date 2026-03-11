@@ -67,7 +67,7 @@ const MedicationNameInput = ({ name, setName, t }: MedNameProps) => {
       {isValid && (
         <p className="text-xs text-success mt-1 flex items-center gap-1">
           <CheckCircle2 className="w-3 h-3" />
-          Medication name verified ✓
+          {t.medicationVerified}
         </p>
       )}
 
