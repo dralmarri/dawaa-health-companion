@@ -333,6 +333,8 @@ const LabTestsPage = () => {
     );
   };
 
+  const hasManualValues = manualEntries.some((entry) => entry.value.trim() !== "");
+  const canSave = Boolean(name.trim() || notes.trim() || attachedImage || hasManualValues);
   const manualResults = getManualResults();
 
   return (
