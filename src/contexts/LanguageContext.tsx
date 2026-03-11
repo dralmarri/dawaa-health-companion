@@ -313,6 +313,14 @@ const translations = {
     hideResults: "إخفاء",
     analyzedResults: "نتائج محللة",
     ocrProcessing: "جاري قراءة الصورة (OCR)...",
+    manualEntry: "إدخال يدوي",
+    custom: "مخصص",
+    enterValue: "أدخل القيمة",
+    addTestItem: "إضافة فحص",
+    searchTests: "ابحث عن فحص...",
+    customTest: "فحص مخصص (غير موجود في القائمة)",
+    enterCustomTestName: "أدخل اسم الفحص",
+    add: "إضافة",
   },
 };
 
