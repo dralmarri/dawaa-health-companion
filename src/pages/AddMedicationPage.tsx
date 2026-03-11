@@ -61,7 +61,7 @@ const MedicationNameInput = ({ name, setName, t }: MedNameProps) => {
       {showWarning && (
         <p className="text-xs text-warning mt-1 flex items-center gap-1">
           <AlertCircle className="w-3 h-3" />
-          Medication not found in database. Please verify the name.
+          {t.medicationNotFound}
         </p>
       )}
       {isValid && (
