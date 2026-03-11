@@ -340,7 +340,7 @@ const LabTestsPage = () => {
   const manualResults = getManualResults();
 
   return (
-    <div className="pb-24">
+    <div className="pb-28">
       <PageHeader title={t.labTests} showBack onAdd={() => setShowForm(true)} />
       
       {/* Fullscreen Image Viewer */}

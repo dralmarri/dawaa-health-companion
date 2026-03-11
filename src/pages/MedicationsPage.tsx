@@ -20,7 +20,7 @@ const MedicationsPage = () => {
   };
 
   return (
-    <div className="pb-24">
+    <div className="pb-28">
       <PageHeader title={t.medications} onAdd={() => navigate("/medications/add")} />
 
       {medications.length === 0 ? (
