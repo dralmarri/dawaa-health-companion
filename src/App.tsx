@@ -13,15 +13,19 @@ import LabTestsPage from "./pages/LabTestsPage";
 import HistoryPage from "./pages/HistoryPage";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
+import { useNotifications } from "./hooks/useNotifications";
 
 const queryClient = new QueryClient();
 
-const AppLayout = ({ children }: { children: React.ReactNode }) => (
-  <div className="max-w-lg mx-auto min-h-screen bg-background relative">
-    {children}
-    <BottomNav />
-  </div>
-);
+const AppLayout = ({ children }: { children: React.ReactNode }) => {
+  useNotifications();
+  return (
+    <div className="max-w-lg mx-auto min-h-screen bg-background relative">
+      {children}
+      <BottomNav />
+    </div>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
