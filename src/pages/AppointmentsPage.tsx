@@ -56,6 +56,8 @@ const AppointmentsPage = () => {
   };
 
   const handleDelete = (id: string) => {
+    const confirmed = window.confirm(isRTL ? "هل أنت متأكد من حذف هذا الموعد؟" : "Are you sure you want to delete this appointment?");
+    if (!confirmed) return;
     store.deleteAppointment(id);
     setAppointments(store.getAppointments());
   };

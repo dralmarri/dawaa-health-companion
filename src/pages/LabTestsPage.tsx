@@ -188,6 +188,8 @@ const LabTestsPage = () => {
   };
 
   const handleDelete = (id: string) => {
+    const confirmed = window.confirm(isRTL ? "هل أنت متأكد من حذف هذا التحليل؟" : "Are you sure you want to delete this lab test?");
+    if (!confirmed) return;
     store.deleteLabTest(id);
     const allResults = JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}");
     delete allResults[id];

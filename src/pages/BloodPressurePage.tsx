@@ -42,6 +42,8 @@ const BloodPressurePage = () => {
   };
 
   const handleDelete = (id: string) => {
+    const confirmed = window.confirm(isRTL ? "هل أنت متأكد من حذف هذه القراءة؟" : "Are you sure you want to delete this reading?");
+    if (!confirmed) return;
     store.deleteReading(id);
     setReadings(store.getReadings());
   };
