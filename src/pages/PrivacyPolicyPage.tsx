@@ -12,67 +12,40 @@ const PrivacyPolicyPage = () => {
           <section>
             <h2 className="text-lg font-bold mb-2">{isRTL ? "مقدمة" : "Introduction"}</h2>
             <p>{isRTL
-              ? "تطبيق Dawaa+ (دواء بلس) يحترم خصوصيتك ويلتزم بحماية بياناتك الشخصية. توضح سياسة الخصوصية هذه كيفية جمع واستخدام وحماية معلوماتك."
-              : "Dawaa+ respects your privacy and is committed to protecting your personal data. This privacy policy explains how we collect, use, and protect your information."
+              ? "تطبيق Dawaa+ (دواء بلس) يحترم خصوصيتك بشكل كامل. هذا التطبيق لا يجمع أي بيانات ولا يرسلها لأي جهة خارجية. جميع بياناتك تبقى على جهازك فقط."
+              : "Dawaa+ fully respects your privacy. This app does not collect any data and does not send it to any external party. All your data stays on your device only."
             }</p>
-          </section>
-
-          <section>
-            <h2 className="text-lg font-bold mb-2">{isRTL ? "البيانات التي نجمعها" : "Data We Collect"}</h2>
-            <ul className="list-disc list-inside space-y-1">
-              <li>{isRTL ? "معلومات الأدوية (الاسم، الجرعة، أوقات التناول)" : "Medication information (name, dosage, schedule times)"}</li>
-              <li>{isRTL ? "قراءات ضغط الدم ومعدل النبض" : "Blood pressure readings and heart rate"}</li>
-              <li>{isRTL ? "مواعيد الأطباء والتخصصات" : "Doctor appointments and specialties"}</li>
-              <li>{isRTL ? "نتائج التحاليل المخبرية" : "Lab test results"}</li>
-              <li>{isRTL ? "اسم المستخدم وإعدادات التطبيق" : "User name and app settings"}</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-lg font-bold mb-2">{isRTL ? "كيف نستخدم بياناتك" : "How We Use Your Data"}</h2>
-            <ul className="list-disc list-inside space-y-1">
-              <li>{isRTL ? "تذكيرك بمواعيد أدويتك لضمان الالتزام بالعلاج" : "Remind you of medication schedules to ensure treatment adherence"}</li>
-              <li>{isRTL ? "تتبع قراءات ضغط الدم وإنشاء تقارير للطبيب" : "Track blood pressure readings and generate reports for your doctor"}</li>
-              <li>{isRTL ? "إدارة مواعيدك الطبية وإرسال تنبيهات" : "Manage your medical appointments and send reminders"}</li>
-              <li>{isRTL ? "تحليل نتائج التحاليل المخبرية ومقارنتها بالمعدلات الطبيعية" : "Analyze lab test results and compare them with normal ranges"}</li>
-            </ul>
           </section>
 
           <section>
             <h2 className="text-lg font-bold mb-2">{isRTL ? "تخزين البيانات" : "Data Storage"}</h2>
             <p>{isRTL
-              ? "جميع بياناتك تُخزّن محلياً على جهازك فقط. لا يتم إرسال أي بيانات شخصية أو طبية إلى خوادم خارجية. أنت المتحكم الوحيد في بياناتك."
-              : "All your data is stored locally on your device only. No personal or medical data is sent to external servers. You are the sole controller of your data."
+              ? "جميع البيانات التي تدخلها في التطبيق (الأدوية، قراءات ضغط الدم، المواعيد، التحاليل، الإعدادات) تُحفظ محلياً على جهازك فقط باستخدام ذاكرة المتصفح. لا يوجد خادم أو قاعدة بيانات سحابية. التطبيق لا يتصل بالإنترنت لإرسال أو استقبال بياناتك الشخصية."
+              : "All data you enter in the app (medications, blood pressure readings, appointments, lab tests, settings) is stored locally on your device only using browser storage. There is no server or cloud database. The app does not connect to the internet to send or receive your personal data."
+            }</p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-bold mb-2">{isRTL ? "لا نجمع بيانات" : "We Do Not Collect Data"}</h2>
+            <p>{isRTL
+              ? "التطبيق لا يجمع أي معلومات شخصية أو صحية أو تحليلات استخدام. لا نستخدم أي أدوات تتبع أو تحليلات أو إعلانات. خصوصيتك مضمونة بالكامل."
+              : "The app does not collect any personal information, health data, or usage analytics. We do not use any tracking tools, analytics, or advertisements. Your privacy is fully guaranteed."
             }</p>
           </section>
 
           <section>
             <h2 className="text-lg font-bold mb-2">{isRTL ? "الإشعارات" : "Notifications"}</h2>
             <p>{isRTL
-              ? "يستخدم التطبيق الإشعارات المحلية لتذكيرك بمواعيد الأدوية ومواعيد الأطباء. يمكنك تفعيل أو تعطيل الإشعارات من إعدادات التطبيق في أي وقت."
-              : "The app uses local notifications to remind you of medication schedules and doctor appointments. You can enable or disable notifications from the app settings at any time."
+              ? "يستخدم التطبيق الإشعارات المحلية فقط لتذكيرك بمواعيد أدويتك. هذه الإشعارات تعمل على جهازك ولا تمر عبر أي خادم خارجي. يمكنك تفعيلها أو تعطيلها في أي وقت."
+              : "The app uses local notifications only to remind you of your medication schedules. These notifications run on your device and do not pass through any external server. You can enable or disable them at any time."
             }</p>
-          </section>
-
-          <section>
-            <h2 className="text-lg font-bold mb-2">{isRTL ? "الأذونات المستخدمة" : "Permissions Used"}</h2>
-            <ul className="list-disc list-inside space-y-1">
-              <li>{isRTL
-                ? "الإشعارات: لإرسال تذكيرات مواعيد الأدوية والمواعيد الطبية في الوقت المحدد"
-                : "Notifications: To send medication and appointment reminders at scheduled times"
-              }</li>
-              <li>{isRTL
-                ? "الكاميرا/مكتبة الصور: لالتقاط صور الأدوية أو رفع نتائج التحاليل المخبرية"
-                : "Camera/Photo Library: To capture medication photos or upload lab test results"
-              }</li>
-            </ul>
           </section>
 
           <section>
             <h2 className="text-lg font-bold mb-2">{isRTL ? "حذف البيانات" : "Data Deletion"}</h2>
             <p>{isRTL
-              ? "يمكنك حذف جميع بياناتك في أي وقت من خلال خيار 'حذف الحساب وجميع البيانات' في صفحة الإعدادات. سيتم مسح جميع المعلومات المخزنة نهائياً من جهازك."
-              : "You can delete all your data at any time through the 'Delete Account & All Data' option in Settings. All stored information will be permanently erased from your device."
+              ? "يمكنك حذف جميع بياناتك في أي وقت من خلال خيار 'حذف الحساب وجميع البيانات' في الإعدادات، أو بحذف التطبيق من جهازك. عند الحذف تُمسح جميع البيانات نهائياً ولا يمكن استرجاعها."
+              : "You can delete all your data at any time through 'Delete Account & All Data' in Settings, or by deleting the app from your device. All data is permanently erased and cannot be recovered."
             }</p>
           </section>
 
