@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Check, AlertCircle, CheckCircle2 } from "lucide-react";
 import ChipSelector from "@/components/ChipSelector";
+import MedicationImageUpload from "@/components/MedicationImageUpload";
 import { store } from "@/lib/store";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { searchMedications, isKnownMedication } from "@/lib/medications-db";
