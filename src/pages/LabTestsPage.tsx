@@ -388,8 +388,8 @@ const LabTestsPage = () => {
               <input
                 ref={imageInputRef}
                 type="file"
-                accept="image/*"
-                onChange={handleImageAttach}
+                accept="image/*,.pdf"
+                onChange={handleFileAttach}
                 className="hidden"
               />
             </div>
