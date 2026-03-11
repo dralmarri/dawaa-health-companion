@@ -45,10 +45,10 @@ const SettingsPage = () => {
   ];
 
   const aboutItems = [
-    { icon: FileText, label: t.termsOfUse },
-    { icon: Shield, label: t.privacyPolicy },
+    { icon: FileText, label: t.termsOfUse, path: "/terms-of-use" },
+    { icon: Shield, label: t.privacyPolicy, path: "/privacy-policy" },
     { icon: Mail, label: t.contactUs },
-    { icon: Info, label: t.version, value: "1.0.1" },
+    { icon: Info, label: t.version, value: "1.0.5" },
   ];
 
   const reminderMap: Record<string, string> = {
