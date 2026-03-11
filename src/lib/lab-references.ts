@@ -135,58 +135,91 @@ export function analyzeValue(testName: string, value: number): AnalyzedResult | 
   };
 }
 
+// Simple fuzzy similarity (0-1)
+function similarity(a: string, b: string): number {
+  a = a.toLowerCase().replace(/[^a-z0-9]/g, "");
+  b = b.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (a === b) return 1;
+  if (a.length < 2 || b.length < 2) return 0;
+  
+  // Check containment
+  if (a.includes(b) || b.includes(a)) return 0.9;
+  
+  // Bigram similarity
+  const getBigrams = (s: string) => {
+    const bigrams = new Set<string>();
+    for (let i = 0; i < s.length - 1; i++) bigrams.add(s.slice(i, i + 2));
+    return bigrams;
+  };
+  const aBigrams = getBigrams(a);
+  const bBigrams = getBigrams(b);
+  let intersection = 0;
+  aBigrams.forEach((bg) => { if (bBigrams.has(bg)) intersection++; });
+  return (2 * intersection) / (aBigrams.size + bBigrams.size);
+}
+
+// Extract numbers from a line
+function extractNumbers(line: string): number[] {
+  const matches = line.match(/\d+\.?\d*/g);
+  return matches ? matches.map(Number).filter((n) => !isNaN(n)) : [];
+}
+
 // Extract test name-value pairs from text
 export function extractLabValues(text: string): AnalyzedResult[] {
   const results: AnalyzedResult[] = [];
-  // Normalize: remove leading >, -, bullets, extra spaces
-  const cleaned = text.replace(/[>\-•►▶]/g, " ").replace(/\s+/g, " ");
-  const lines = cleaned.split(/\n/);
+  const matched = new Set<string>();
+  
+  // Split into lines and process each
+  const lines = text.split(/\n/);
 
-  for (const line of lines) {
+  for (const rawLine of lines) {
+    // Clean line: remove >, bullets, special chars but keep structure
+    const line = rawLine.replace(/[>•►▶§]/g, " ").trim();
+    if (!line || line.length < 3) continue;
+
+    // Extract all numbers from the line
+    const numbers = extractNumbers(line);
+    if (numbers.length === 0) continue;
+
+    // Get the text part before the first number
+    const firstNumMatch = line.match(/\d+\.?\d*/);
+    if (!firstNumMatch) continue;
+    const textPart = line.slice(0, firstNumMatch.index).trim().toLowerCase();
+    if (textPart.length < 1) continue;
+
+    // Try exact regex match first
+    let bestMatch: { ref: typeof labReferences[0]; value: number } | null = null;
+    let bestScore = 0;
+
     for (const ref of labReferences) {
-      if (results.find((r) => r.testName === ref.name)) continue;
-      const allNames = [ref.name, ...ref.aliases];
+      if (matched.has(ref.name)) continue;
+      
+      const allNames = [ref.name.toLowerCase(), ...ref.aliases.map(a => a.toLowerCase())];
+      
+      // Exact match
       for (const name of allNames) {
-        const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        // Match test name followed by value, allowing various separators and OCR artifacts
-        const regex = new RegExp(
-          `(?:^|\\s|[>\\-•])${escapedName}[\\s.:;\\-_#%]*[\\s.]*?(\\d+\\.?\\d*)`,
-          "i"
-        );
-        const match = line.match(regex);
-        if (match) {
-          const value = parseFloat(match[1]);
-          if (!isNaN(value) && value > 0) {
-            const analyzed = analyzeValue(ref.name, value);
-            if (analyzed) results.push(analyzed);
-          }
+        if (textPart === name || textPart.endsWith(name) || textPart.includes(name)) {
+          bestMatch = { ref, value: numbers[0] };
+          bestScore = 1;
           break;
+        }
+      }
+      if (bestScore === 1) break;
+
+      // Fuzzy match - try each alias
+      for (const name of allNames) {
+        const score = similarity(textPart, name);
+        if (score > bestScore && score >= 0.5) {
+          bestScore = score;
+          bestMatch = { ref, value: numbers[0] };
         }
       }
     }
-  }
 
-  // Also try on the full text as one line (OCR sometimes joins lines)
-  if (results.length < 3) {
-    for (const ref of labReferences) {
-      if (results.find((r) => r.testName === ref.name)) continue;
-      const allNames = [ref.name, ...ref.aliases];
-      for (const name of allNames) {
-        const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const regex = new RegExp(
-          `${escapedName}[\\s.:;\\-_#%]*[\\s.]*?(\\d+\\.?\\d*)`,
-          "i"
-        );
-        const match = cleaned.match(regex);
-        if (match) {
-          const value = parseFloat(match[1]);
-          if (!isNaN(value) && value > 0) {
-            const analyzed = analyzeValue(ref.name, value);
-            if (analyzed) results.push(analyzed);
-          }
-          break;
-        }
-      }
+    if (bestMatch && bestScore >= 0.5) {
+      matched.add(bestMatch.ref.name);
+      const analyzed = analyzeValue(bestMatch.ref.name, bestMatch.value);
+      if (analyzed) results.push(analyzed);
     }
   }
 
