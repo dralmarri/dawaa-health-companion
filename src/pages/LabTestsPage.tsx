@@ -99,10 +99,56 @@ const LabTestsPage = () => {
     setAnalysisResults([]);
 
     try {
+      const runOcr = async (input: File | string) => {
+        setOcrProgress(0);
+        const { createWorker } = await import("tesseract.js");
+        const worker = await createWorker("eng", undefined, {
+          logger: (m: { status: string; progress: number }) => {
+            if (m.status === "recognizing text") {
+              setOcrProgress(Math.round(m.progress * 100));
+            }
+          },
+        });
+        const { data } = await worker.recognize(input);
+        await worker.terminate();
+        console.log("=== OCR RAW TEXT ===");
+        console.log(data.text);
+        console.log("=== END OCR TEXT ===");
+        return data.text;
+      };
+
       if (file.type === "application/pdf") {
         const { extractTextFromPdf } = await import("@/lib/pdf-parser");
         const text = await extractTextFromPdf(file);
-        const results = extractLabValues(text);
+        let results = extractLabValues(text);
+        
+        // If PDF text extraction found few results, it might be a scanned/image PDF - try OCR
+        if (results.length < 3) {
+          console.log("PDF text extraction found few results, trying OCR on PDF pages...");
+          const pdfjsLib = await import("pdfjs-dist");
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          const allOcrResults: typeof results = [];
+          
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const viewport = page.getViewport({ scale: 2.0 });
+            const canvas = document.createElement("canvas");
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext("2d")!;
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            const dataUrl = canvas.toDataURL("image/png");
+            const ocrText = await runOcr(dataUrl);
+            const pageResults = extractLabValues(ocrText);
+            allOcrResults.push(...pageResults);
+          }
+          
+          if (allOcrResults.length > results.length) {
+            results = allOcrResults;
+          }
+        }
+        
         setAnalysisResults(results);
       } else if (file.type === "application/json" || file.name.endsWith(".json")) {
         const text = await file.text();
@@ -114,21 +160,8 @@ const LabTestsPage = () => {
         const results = extractLabValues(text);
         setAnalysisResults(results);
       } else if (file.type.startsWith("image/")) {
-        setOcrProgress(0);
-        const { createWorker } = await import("tesseract.js");
-        const worker = await createWorker("eng", undefined, {
-          logger: (m: { status: string; progress: number }) => {
-            if (m.status === "recognizing text") {
-              setOcrProgress(Math.round(m.progress * 100));
-            }
-          },
-        });
-        const { data } = await worker.recognize(file);
-        await worker.terminate();
-        console.log("=== OCR RAW TEXT ===");
-        console.log(data.text);
-        console.log("=== END OCR TEXT ===");
-        const results = extractLabValues(data.text);
+        const ocrText = await runOcr(file);
+        const results = extractLabValues(ocrText);
         console.log("=== EXTRACTED RESULTS ===", results.length, results.map(r => r.testName));
         setAnalysisResults(results);
       }

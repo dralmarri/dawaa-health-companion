@@ -183,12 +183,12 @@ export function extractLabValues(text: string): AnalyzedResult[] {
       inHashSection = true;
     }
 
-    // Extract first number from line
-    const numMatch = line.match(/(\d+\.?\d*)/);
+    // Extract first reasonable number from line (lab values rarely exceed 10000)
+    const numMatch = line.match(/(\d{1,5}\.?\d{0,3})\b/);
     if (!numMatch) continue;
     
     const value = parseFloat(numMatch[1]);
-    if (isNaN(value)) continue;
+    if (isNaN(value) || value > 10000) continue;
 
     // Get text before the number
     let textPart = line.slice(0, numMatch.index).trim().toLowerCase();
