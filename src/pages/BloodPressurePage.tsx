@@ -54,10 +54,10 @@ const BloodPressurePage = () => {
       <div className="px-3 sm:px-4 space-y-4 max-w-lg mx-auto">
         {latestReading && (
           <div className="bg-card rounded-2xl border border-border p-5">
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">{t.latestReading}</p>
-                <p className="text-3xl font-bold text-foreground">{latestReading.systolic}/{latestReading.diastolic}</p>
+            <div className="flex gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground">{t.latestReading}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-foreground">{latestReading.systolic}/{latestReading.diastolic}</p>
                 <p className="text-sm text-heart">♥ {latestReading.heartRate} bpm</p>
                 <span className={`text-sm font-medium ${getCategory(latestReading.systolic).color}`}>{getCategory(latestReading.systolic).label}</span>
               </div>
