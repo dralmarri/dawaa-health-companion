@@ -52,8 +52,8 @@ const PrivacyPolicyPage = () => {
           <section>
             <h2 className="text-lg font-bold mb-2">{isRTL ? "التواصل معنا" : "Contact Us"}</h2>
             <p>{isRTL
-              ? "إذا كان لديك أي استفسار حول سياسة الخصوصية، يرجى التواصل معنا عبر البريد الإلكتروني: support@dawaaplus.app"
-              : "If you have any questions about this privacy policy, please contact us at: support@dawaaplus.app"
+              ? "إذا كان لديك أي استفسار حول سياسة الخصوصية، يرجى التواصل معنا عبر البريد الإلكتروني: dralmarri@gmail.com"
+              : "If you have any questions about this privacy policy, please contact us at: dralmarri@gmail.com"
             }</p>
           </section>
 
