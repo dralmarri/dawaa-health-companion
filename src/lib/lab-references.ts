@@ -17,7 +17,7 @@ export const labReferences: LabReference[] = [
   { name: "MCV", aliases: ["mean corpuscular volume"], unit: "fL", normalRange: { min: 80, max: 100 }, category: "CBC" },
   { name: "MCH", aliases: ["mean corpuscular hemoglobin"], unit: "pg", normalRange: { min: 27, max: 33 }, category: "CBC" },
   { name: "MCHC", aliases: ["mean corpuscular hemoglobin concentration", "binche"], unit: "g/dL", normalRange: { min: 32, max: 36 }, category: "CBC" },
-  { name: "RDW", aliases: ["red cell distribution width", "rdw-cv", "rdw-sd", "row"], unit: "%", normalRange: { min: 11.5, max: 14.5 }, category: "CBC" },
+  { name: "RDW", aliases: ["red cell distribution width", "rdw-cv", "rdw-sd"], unit: "%", normalRange: { min: 11.5, max: 14.5 }, category: "CBC" },
   { name: "MPV", aliases: ["mean platelet volume", "shey"], unit: "fL", normalRange: { min: 6.0, max: 10.0 }, category: "CBC" },
   { name: "Neutrophils %", aliases: ["neut", "neut %", "neutrophil count", "neutrophils", "neutrophils %"], unit: "%", normalRange: { min: 40, max: 70 }, category: "CBC" },
   { name: "Lymphocytes %", aliases: ["lymph", "lymph %", "lymphocyte count", "lymphocytes", "lymphocytes %", "mehocveae", "mehocvtae"], unit: "%", normalRange: { min: 20, max: 40 }, category: "CBC" },
@@ -56,7 +56,7 @@ export const labReferences: LabReference[] = [
 
   // Diabetes
   { name: "Glucose Fasting", aliases: ["fasting glucose", "fbs", "fasting blood sugar", "glucose"], unit: "mg/dL", normalRange: { min: 70, max: 100 }, category: "Diabetes" },
-  { name: "HbA1c", aliases: ["hemoglobin a1c", "glycated hemoglobin", "a1c", "hba1c"], unit: "%", normalRange: { min: 4.0, max: 5.6 }, category: "Diabetes" },
+  { name: "HbA1c", aliases: ["hemoglobin a1c", "glycated hemoglobin", "hba1c"], unit: "%", normalRange: { min: 4.0, max: 5.6 }, category: "Diabetes" },
 
   // Thyroid
   { name: "TSH", aliases: ["thyroid stimulating hormone", "thyrotropin"], unit: "mIU/L", normalRange: { min: 0.4, max: 4.0 }, category: "Thyroid" },
