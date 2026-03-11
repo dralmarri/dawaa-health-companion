@@ -14,6 +14,7 @@ import HistoryPage from "./pages/HistoryPage";
 import SettingsPage from "./pages/SettingsPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsOfUsePage from "./pages/TermsOfUsePage";
+import EmergencyContactPage from "./pages/EmergencyContactPage";
 import NotFound from "./pages/NotFound";
 import { useNotifications } from "./hooks/useNotifications";
 
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/settings" element={<AppLayout><SettingsPage /></AppLayout>} />
             <Route path="/privacy-policy" element={<AppLayout><PrivacyPolicyPage /></AppLayout>} />
             <Route path="/terms-of-use" element={<AppLayout><TermsOfUsePage /></AppLayout>} />
+            <Route path="/emergency-contact" element={<EmergencyContactPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

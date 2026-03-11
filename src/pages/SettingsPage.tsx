@@ -39,7 +39,8 @@ const SettingsPage = () => {
   const Chevron = isRTL ? ChevronLeft : ChevronRight;
 
   const menuItems = [
-    { icon: Users, label: t.emergencyContact, path: "#" },
+    { icon: Users, label: t.emergencyContact, path: "/emergency-contact",
+      subtitle: settings.emergencyContact ? settings.emergencyContact.name : (isRTL ? "لم يتم التعيين" : "Not set") },
     { icon: FlaskConical, label: t.labTests, path: "/lab-tests" },
     { icon: CalendarDays, label: t.appointments, path: "/appointments" },
   ];
@@ -135,11 +136,14 @@ const SettingsPage = () => {
         {/* Menu Items */}
         <div className="bg-card rounded-2xl border border-border divide-y divide-border">
           {menuItems.map((item) => (
-            <button key={item.label} onClick={() => item.path !== "#" && navigate(item.path)}
+            <button key={item.label} onClick={() => navigate(item.path)}
               className="w-full flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-3">
                 <item.icon className="w-5 h-5 text-primary" />
-                <span className="text-foreground font-medium">{item.label}</span>
+                <div className="text-start">
+                  <span className="text-foreground font-medium block">{item.label}</span>
+                  {item.subtitle && <span className="text-xs text-muted-foreground">{item.subtitle}</span>}
+                </div>
               </div>
               <Chevron className="w-5 h-5 text-muted-foreground" />
             </button>
