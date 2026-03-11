@@ -117,7 +117,7 @@ const BloodPressurePage = () => {
             <div className="flex items-center mt-1">
               <span className="text-sm text-muted-foreground me-2">bpm</span>
               <input type="number" value={heartRate} onChange={(e) => setHeartRate(e.target.value)} placeholder="72"
-                className="flex-1 px-4 py-3 rounded-xl bg-accent text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-lg" />
+                className="flex-1 min-w-0 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl bg-accent text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base sm:text-lg" />
               <Heart className="w-5 h-5 text-heart ms-2" fill="currentColor" />
             </div>
             <p className="text-xs text-muted-foreground mt-1">{t.normalRange}</p>
