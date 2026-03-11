@@ -45,10 +45,10 @@ const SettingsPage = () => {
   ];
 
   const aboutItems = [
-    { icon: FileText, label: t.termsOfUse },
-    { icon: Shield, label: t.privacyPolicy },
+    { icon: FileText, label: t.termsOfUse, path: "/terms-of-use" },
+    { icon: Shield, label: t.privacyPolicy, path: "/privacy-policy" },
     { icon: Mail, label: t.contactUs },
-    { icon: Info, label: t.version, value: "1.0.1" },
+    { icon: Info, label: t.version, value: "1.0.5" },
   ];
 
   const reminderMap: Record<string, string> = {
@@ -150,13 +150,14 @@ const SettingsPage = () => {
         <div className="bg-card rounded-2xl border border-border divide-y divide-border">
           <div className="px-5 py-3"><h3 className="font-bold text-foreground">{t.about}</h3></div>
           {aboutItems.map((item) => (
-            <div key={item.label} className="flex items-center justify-between px-5 py-4">
+            <button key={item.label} onClick={() => item.path && navigate(item.path)}
+              className="w-full flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-3">
                 <item.icon className="w-5 h-5 text-primary" />
                 <span className="text-foreground font-medium">{item.label}</span>
               </div>
               {item.value ? <span className="text-muted-foreground">{item.value}</span> : <Chevron className="w-5 h-5 text-muted-foreground" />}
-            </div>
+            </button>
           ))}
         </div>
 
