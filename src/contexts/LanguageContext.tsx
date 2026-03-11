@@ -134,6 +134,8 @@ const translations = {
     deleteAccount: "Delete Account & All Data",
     markDone: "Mark done",
     done: "Done",
+    medicationNotFound: "Medication not found in database. Please verify the name.",
+    medicationVerified: "Medication name verified ✓",
   },
   ar: {
     appName: "+دواء",
