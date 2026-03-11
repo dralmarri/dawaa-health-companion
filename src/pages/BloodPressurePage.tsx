@@ -49,21 +49,21 @@ const BloodPressurePage = () => {
   };
 
   return (
-    <div className="pb-24">
+    <div className="pb-24 overflow-x-hidden">
       <PageHeader title={t.bloodPressureMonitoring} showBack />
-      <div className="px-4 space-y-4">
+      <div className="px-3 sm:px-4 space-y-4 max-w-lg mx-auto">
         {latestReading && (
           <div className="bg-card rounded-2xl border border-border p-5">
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">{t.latestReading}</p>
-                <p className="text-3xl font-bold text-foreground">{latestReading.systolic}/{latestReading.diastolic}</p>
+            <div className="flex gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground">{t.latestReading}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-foreground">{latestReading.systolic}/{latestReading.diastolic}</p>
                 <p className="text-sm text-heart">♥ {latestReading.heartRate} bpm</p>
                 <span className={`text-sm font-medium ${getCategory(latestReading.systolic).color}`}>{getCategory(latestReading.systolic).label}</span>
               </div>
-              <div className="border-s border-border ps-4 flex-1">
-                <p className="text-sm text-muted-foreground">{t.averageOfLast} {last7.length} {t.readings}</p>
-                <p className="text-3xl font-bold text-foreground">{avgSys}/{avgDia}</p>
+              <div className="border-s border-border ps-3 flex-1 min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground">{t.averageOfLast} {last7.length} {t.readings}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-foreground">{avgSys}/{avgDia}</p>
                 <p className="text-sm text-heart">♥ {avgHr} bpm</p>
                 <p className="text-xs text-muted-foreground">mmHg</p>
               </div>
@@ -77,7 +77,7 @@ const BloodPressurePage = () => {
           </button>
         )}
 
-        <div className="bg-card rounded-2xl border border-border p-5 space-y-4 print-hide">
+        <div className="bg-card rounded-2xl border border-border p-4 sm:p-5 space-y-3 sm:space-y-4 print-hide">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-info rounded-xl flex items-center justify-center">
               <Heart className="w-5 h-5 text-info-foreground" fill="currentColor" />
@@ -95,7 +95,7 @@ const BloodPressurePage = () => {
             <div className="flex items-center mt-1">
               <span className="text-sm text-muted-foreground me-2">mmHg</span>
               <input type="number" value={systolic} onChange={(e) => setSystolic(e.target.value)} placeholder="120"
-                className="flex-1 px-4 py-3 rounded-xl bg-accent text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-lg" />
+                className="flex-1 min-w-0 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl bg-accent text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base sm:text-lg" />
             </div>
           </div>
 
@@ -106,7 +106,7 @@ const BloodPressurePage = () => {
             <div className="flex items-center mt-1">
               <span className="text-sm text-muted-foreground me-2">mmHg</span>
               <input type="number" value={diastolic} onChange={(e) => setDiastolic(e.target.value)} placeholder="80"
-                className="flex-1 px-4 py-3 rounded-xl bg-accent text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-lg" />
+                className="flex-1 min-w-0 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl bg-accent text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base sm:text-lg" />
             </div>
           </div>
 
@@ -117,7 +117,7 @@ const BloodPressurePage = () => {
             <div className="flex items-center mt-1">
               <span className="text-sm text-muted-foreground me-2">bpm</span>
               <input type="number" value={heartRate} onChange={(e) => setHeartRate(e.target.value)} placeholder="72"
-                className="flex-1 px-4 py-3 rounded-xl bg-accent text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-lg" />
+                className="flex-1 min-w-0 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl bg-accent text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base sm:text-lg" />
               <Heart className="w-5 h-5 text-heart ms-2" fill="currentColor" />
             </div>
             <p className="text-xs text-muted-foreground mt-1">{t.normalRange}</p>
@@ -133,7 +133,7 @@ const BloodPressurePage = () => {
           </div>
 
           <button onClick={handleSave} disabled={!systolic || !diastolic || !heartRate}
-            className="w-full py-3 rounded-2xl bg-info text-info-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-50">
+            className="w-full py-2.5 sm:py-3 rounded-2xl bg-info text-info-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base">
             <Save className="w-5 h-5" /> {t.saveReading}
           </button>
         </div>
