@@ -267,6 +267,8 @@ const translations = {
     deleteAccount: "حذف الحساب وجميع البيانات",
     markDone: "تم",
     done: "مكتمل",
+    medicationNotFound: "الدواء غير موجود في قاعدة البيانات. يرجى التحقق من الاسم.",
+    medicationVerified: "تم التحقق من اسم الدواء ✓",
   },
 };
 
