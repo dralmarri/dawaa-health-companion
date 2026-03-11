@@ -1,22 +1,41 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Index from "./pages/Index.tsx";
-import NotFound from "./pages/NotFound.tsx";
+import BottomNav from "@/components/BottomNav";
+import HomePage from "./pages/HomePage";
+import MedicationsPage from "./pages/MedicationsPage";
+import AddMedicationPage from "./pages/AddMedicationPage";
+import BloodPressurePage from "./pages/BloodPressurePage";
+import AppointmentsPage from "./pages/AppointmentsPage";
+import LabTestsPage from "./pages/LabTestsPage";
+import HistoryPage from "./pages/HistoryPage";
+import SettingsPage from "./pages/SettingsPage";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+const AppLayout = ({ children }: { children: React.ReactNode }) => (
+  <div className="max-w-lg mx-auto min-h-screen bg-background relative">
+    {children}
+    <BottomNav />
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/" element={<AppLayout><HomePage /></AppLayout>} />
+          <Route path="/medications" element={<AppLayout><MedicationsPage /></AppLayout>} />
+          <Route path="/medications/add" element={<AddMedicationPage />} />
+          <Route path="/blood-pressure" element={<AppLayout><BloodPressurePage /></AppLayout>} />
+          <Route path="/appointments" element={<AppLayout><AppointmentsPage /></AppLayout>} />
+          <Route path="/lab-tests" element={<AppLayout><LabTestsPage /></AppLayout>} />
+          <Route path="/history" element={<AppLayout><HistoryPage /></AppLayout>} />
+          <Route path="/settings" element={<AppLayout><SettingsPage /></AppLayout>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
