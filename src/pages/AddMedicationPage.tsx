@@ -200,11 +200,13 @@ const AddMedicationPage = () => {
       mealRelation,
       notes,
       stock,
+      imageUrl,
       createdAt: editingMedication?.createdAt || new Date().toISOString(),
     };
     store.saveMedication(med);
     scheduleMedicationNotifications();
     navigate("/medications");
+  };
   };
 
   const canNext = () => {
