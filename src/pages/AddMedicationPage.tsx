@@ -200,6 +200,7 @@ const AddMedicationPage = () => {
       createdAt: editingMedication?.createdAt || new Date().toISOString(),
     };
     store.saveMedication(med);
+    scheduleMedicationNotifications();
     navigate("/medications");
   };
 
