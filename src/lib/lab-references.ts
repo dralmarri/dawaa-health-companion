@@ -9,16 +9,27 @@ export interface LabReference {
 
 export const labReferences: LabReference[] = [
   // Complete Blood Count (CBC)
-  { name: "WBC", aliases: ["white blood cells", "white blood cell count", "wbc count", "leucocytes"], unit: "×10³/µL", normalRange: { min: 4.5, max: 11.0 }, category: "CBC" },
-  { name: "RBC", aliases: ["red blood cells", "red blood cell count", "rbc count", "erythrocytes"], unit: "×10⁶/µL", normalRange: { min: 4.5, max: 5.5 }, category: "CBC" },
+  { name: "WBC", aliases: ["white blood cells", "white blood cell count", "wbc count", "leucocytes", "wbcs"], unit: "×10³/µL", normalRange: { min: 4.0, max: 11.0 }, category: "CBC" },
+  { name: "RBC", aliases: ["red blood cells", "red blood cell count", "rbc count", "erythrocytes", "rbcs"], unit: "×10⁶/µL", normalRange: { min: 4.5, max: 5.5 }, category: "CBC" },
   { name: "Hemoglobin", aliases: ["hgb", "hb", "haemoglobin"], unit: "g/dL", normalRange: { min: 12.0, max: 17.5 }, category: "CBC" },
   { name: "Hematocrit", aliases: ["hct", "packed cell volume", "pcv"], unit: "%", normalRange: { min: 36, max: 50 }, category: "CBC" },
   { name: "Platelets", aliases: ["plt", "platelet count", "thrombocytes"], unit: "×10³/µL", normalRange: { min: 150, max: 400 }, category: "CBC" },
   { name: "MCV", aliases: ["mean corpuscular volume"], unit: "fL", normalRange: { min: 80, max: 100 }, category: "CBC" },
   { name: "MCH", aliases: ["mean corpuscular hemoglobin"], unit: "pg", normalRange: { min: 27, max: 33 }, category: "CBC" },
   { name: "MCHC", aliases: ["mean corpuscular hemoglobin concentration"], unit: "g/dL", normalRange: { min: 32, max: 36 }, category: "CBC" },
-  { name: "Neutrophils", aliases: ["neut", "neutrophil count"], unit: "%", normalRange: { min: 40, max: 70 }, category: "CBC" },
-  { name: "Lymphocytes", aliases: ["lymph", "lymphocyte count"], unit: "%", normalRange: { min: 20, max: 40 }, category: "CBC" },
+  { name: "RDW", aliases: ["red cell distribution width", "rdw-cv", "rdw-sd"], unit: "%", normalRange: { min: 11.5, max: 14.5 }, category: "CBC" },
+  { name: "MPV", aliases: ["mean platelet volume"], unit: "fL", normalRange: { min: 6.0, max: 10.0 }, category: "CBC" },
+  { name: "Neutrophils %", aliases: ["neut", "neut %", "neutrophil count", "neutrophils", "neutrophils %"], unit: "%", normalRange: { min: 40, max: 70 }, category: "CBC" },
+  { name: "Lymphocytes %", aliases: ["lymph", "lymph %", "lymphocyte count", "lymphocytes", "lymphocytes %"], unit: "%", normalRange: { min: 20, max: 40 }, category: "CBC" },
+  { name: "Monocytes %", aliases: ["mono", "mono %", "monocyte count", "monocytes", "monocytes %"], unit: "%", normalRange: { min: 2, max: 10 }, category: "CBC" },
+  { name: "Eosinophils %", aliases: ["eos", "eos %", "eosinophil count", "eosinophils", "eosinophils %"], unit: "%", normalRange: { min: 0, max: 6 }, category: "CBC" },
+  { name: "Basophils %", aliases: ["baso", "baso %", "basophil count", "basophils", "basophils %"], unit: "%", normalRange: { min: 0, max: 2 }, category: "CBC" },
+  { name: "Neutrophils #", aliases: ["neut #", "neutrophils #", "neutrophil abs", "absolute neutrophils"], unit: "×10³/µL", normalRange: { min: 2.0, max: 7.0 }, category: "CBC" },
+  { name: "Lymphocytes #", aliases: ["lymph #", "lymphocytes #", "lymphocyte abs", "absolute lymphocytes"], unit: "×10³/µL", normalRange: { min: 1.0, max: 3.0 }, category: "CBC" },
+  { name: "Monocytes #", aliases: ["mono #", "monocytes #", "monocyte abs", "absolute monocytes"], unit: "×10³/µL", normalRange: { min: 0.0, max: 2.0 }, category: "CBC" },
+  { name: "Eosinophils #", aliases: ["eos #", "eosinophils #", "eosinophil abs", "absolute eosinophils"], unit: "×10³/µL", normalRange: { min: 0.02, max: 0.50 }, category: "CBC" },
+  { name: "Basophils #", aliases: ["baso #", "basophils #", "basophil abs", "absolute basophils"], unit: "×10³/µL", normalRange: { min: 0.0, max: 0.3 }, category: "CBC" },
+  { name: "Nucleated RBC", aliases: ["nucleated rbcs", "nrbc", "nucleated red blood cells"], unit: "%", normalRange: { min: 0, max: 2 }, category: "CBC" },
 
   // Liver Function
   { name: "ALT", aliases: ["alanine aminotransferase", "sgpt", "gpt"], unit: "U/L", normalRange: { min: 7, max: 56 }, category: "Liver" },
@@ -127,22 +138,49 @@ export function analyzeValue(testName: string, value: number): AnalyzedResult | 
 // Extract test name-value pairs from text
 export function extractLabValues(text: string): AnalyzedResult[] {
   const results: AnalyzedResult[] = [];
-  const lines = text.split(/\n/);
+  // Normalize: remove leading >, -, bullets, extra spaces
+  const cleaned = text.replace(/[>\-•►▶]/g, " ").replace(/\s+/g, " ");
+  const lines = cleaned.split(/\n/);
 
   for (const line of lines) {
-    // Try patterns like "Test Name: 5.5" or "Test Name  5.5  mg/dL" or "Test Name ..... 5.5"
     for (const ref of labReferences) {
+      if (results.find((r) => r.testName === ref.name)) continue;
       const allNames = [ref.name, ...ref.aliases];
       for (const name of allNames) {
         const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        // Match test name followed by value, allowing various separators and OCR artifacts
         const regex = new RegExp(
-          `${escapedName}[\\s.:;\\-_]*[\\s.]*?(\\d+\\.?\\d*)`,
+          `(?:^|\\s|[>\\-•])${escapedName}[\\s.:;\\-_#%]*[\\s.]*?(\\d+\\.?\\d*)`,
           "i"
         );
         const match = line.match(regex);
         if (match) {
           const value = parseFloat(match[1]);
-          if (!isNaN(value) && !results.find((r) => r.testName === ref.name)) {
+          if (!isNaN(value) && value > 0) {
+            const analyzed = analyzeValue(ref.name, value);
+            if (analyzed) results.push(analyzed);
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  // Also try on the full text as one line (OCR sometimes joins lines)
+  if (results.length < 3) {
+    for (const ref of labReferences) {
+      if (results.find((r) => r.testName === ref.name)) continue;
+      const allNames = [ref.name, ...ref.aliases];
+      for (const name of allNames) {
+        const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regex = new RegExp(
+          `${escapedName}[\\s.:;\\-_#%]*[\\s.]*?(\\d+\\.?\\d*)`,
+          "i"
+        );
+        const match = cleaned.match(regex);
+        if (match) {
+          const value = parseFloat(match[1]);
+          if (!isNaN(value) && value > 0) {
             const analyzed = analyzeValue(ref.name, value);
             if (analyzed) results.push(analyzed);
           }
