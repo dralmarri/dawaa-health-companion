@@ -72,7 +72,7 @@ const BloodPressurePage = () => {
         )}
 
         {readings.length > 0 && (
-          <button onClick={() => window.print()} className="w-full py-3 rounded-2xl bg-info text-info-foreground font-semibold text-center">
+          <button onClick={() => window.print()} className="w-full py-3 rounded-2xl bg-info text-info-foreground font-semibold text-center print-hide">
             🖨️ {t.printReport}
           </button>
         )}
