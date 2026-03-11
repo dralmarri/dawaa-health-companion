@@ -111,10 +111,57 @@ const LabTestsPage = () => {
         });
         const { data } = await worker.recognize(input);
         await worker.terminate();
-        console.log("=== OCR RAW TEXT ===");
-        console.log(data.text);
+        
+        // Use word-level bounding boxes to reconstruct proper lines
+        // This fixes tabular layouts where Tesseract merges columns incorrectly
+        let reconstructedText = data.text;
+        if (data.words && data.words.length > 0) {
+          const words = data.words
+            .filter((w: any) => w.text && w.text.trim())
+            .map((w: any) => ({
+              text: w.text.trim(),
+              y: (w.bbox.y0 + w.bbox.y1) / 2, // vertical center
+              x: w.bbox.x0, // left edge
+              height: w.bbox.y1 - w.bbox.y0,
+            }));
+          
+          if (words.length > 0) {
+            // Group words into lines by Y-coordinate proximity
+            // Use median word height as tolerance
+            const heights = words.map((w: any) => w.height).sort((a: number, b: number) => a - b);
+            const medianHeight = heights[Math.floor(heights.length / 2)] || 20;
+            const yTolerance = medianHeight * 0.5;
+            
+            // Sort by Y first, then X
+            words.sort((a: any, b: any) => a.y - b.y || a.x - b.x);
+            
+            const lines: { y: number; words: { text: string; x: number }[] }[] = [];
+            for (const word of words) {
+              const existingLine = lines.find((l) => Math.abs(l.y - word.y) < yTolerance);
+              if (existingLine) {
+                existingLine.words.push({ text: word.text, x: word.x });
+                // Update line Y to average
+                existingLine.y = (existingLine.y + word.y) / 2;
+              } else {
+                lines.push({ y: word.y, words: [{ text: word.text, x: word.x }] });
+              }
+            }
+            
+            // Sort each line's words by X, then join
+            reconstructedText = lines
+              .sort((a, b) => a.y - b.y)
+              .map((line) => {
+                line.words.sort((a, b) => a.x - b.x);
+                return line.words.map((w) => w.text).join(" ");
+              })
+              .join("\n");
+          }
+        }
+        
+        console.log("=== OCR RECONSTRUCTED TEXT ===");
+        console.log(reconstructedText);
         console.log("=== END OCR TEXT ===");
-        return data.text;
+        return reconstructedText;
       };
 
       if (file.type === "application/pdf") {
