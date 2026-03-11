@@ -52,6 +52,12 @@ export interface DoseRecord {
   date: string;
 }
 
+export interface EmergencyContact {
+  name: string;
+  phone: string;
+  method: 'whatsapp' | 'sms';
+}
+
 export interface AppSettings {
   language: 'en' | 'ar';
   userName: string;
@@ -59,4 +65,5 @@ export interface AppSettings {
   voiceNotifications: boolean;
   reminderBefore: string;
   escalationOnMissed: boolean;
+  emergencyContact?: EmergencyContact;
 }
