@@ -1,7 +1,7 @@
 {
   "name": "vite_react_shadcn_ts",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.5",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -69,7 +69,8 @@
     "tailwindcss-animate": "^1.0.7",
     "tesseract.js": "5.1.1",
     "vaul": "^0.9.9",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+"firebase": "^11.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
