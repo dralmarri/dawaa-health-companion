@@ -112,49 +112,39 @@ const LabTestsPage = () => {
             stored[testId] = allResults;
             localStorage.setItem("dawaa_lab_results", JSON.stringify(stored));
             setSavedResults((prev) => ({ ...prev, [testId]: allResults }));
-          }
-          setTests(store.getLabTests());
-          resetForm();
-          alert(isRTL ? "تم الحفظ بدون الصورة (المساحة ممتلئة)" : "Saved without image (storage full)");
-        } catch {
-          alert(isRTL ? "فشل الحفظ - المساحة ممتلئة" : "Save failed - storage full");
-        }
-      } else {
-        alert(isRTL ? "فشل الحفظ" : "Save failed");
-      }
-    }
+        const handleDelete = async (id: string) => {
+    const confirmed = window.confirm(isRTL ? "هل أنت متأكد من حذف هذا التحليل؟" : "Are you sure you want to delete this lab test?");
+    if (!confirmed) return;
+    await store.deleteLabTest(id);
+    const allResults = JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}");
+    delete allResults[id];
+    localStorage.setItem("dawaa_lab_results", JSON.stringify(allResults));
+    setTests(store.getLabTests());
   };
-    if (file.type.startsWith("image/")) {
-      try {
-        const compressed = await compressImage(file);
-        setAttachedImage(compressed);
-      } catch {
-        const reader = new FileReader();
-        reader.onload = () => setAttachedImage(reader.result as string);
-        reader.readAsDataURL(file);
       }
-    } else if (file.type === "application/pdf") {
-      setAttachedImage("pdf:" + file.name);
+ const handlePrint = (test: LabTest) => {
+    const results = savedResults[test.id] || JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}")[test.id];
+
+    let text = `${test.name}\n`;
+    text += `${format(new Date(test.date), "yyyy/MM/dd - hh:mm a")}\n`;
+    if (test.notes) text += `${test.notes}\n`;
+    text += `\n`;
+
+    if (results && results.length > 0) {
+      results.forEach((r: AnalyzedResult) => {
+        const status = r.status === "normal" ? "✓" : r.status === "high" ? "⬆ عالي" : "⬇ منخفض";
+        text += `${r.testName}: ${r.value} ${r.unit} [${r.normalRange.min}-${r.normalRange.max}] ${status}\n`;
+      });
     }
-    if (imageInputRef.current) imageInputRef.current.value = "";
+
+    const el = document.createElement("textarea");
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand("copy");
+    document.body.removeChild(el);
+    alert(isRTL ? "تم نسخ التقرير - الصق في أي تطبيق للطباعة" : "Report copied - paste in any app to print");
   };
-
-  const handleSave = () => {
-    const hasManualValues = manualEntries.some((entry) => entry.value.trim() !== "");
-    const canSave = Boolean(name.trim() || notes.trim() || attachedImage || hasManualValues);
-    if (!canSave) return;
-
-    const testId = crypto.randomUUID();
-    const allResults = getManualResults();
-    const generatedName = name.trim() || (isRTL ? `تحليل ${format(new Date(), "yyyy/MM/dd")}` : `Lab Test ${format(new Date(), "yyyy/MM/dd")}`);
-
-    const test: LabTest = {
-      id: testId,
-      name: generatedName,
-      notes: notes.trim(),
-      fileUrl: attachedImage || undefined,
-      date: new Date().toISOString(),
-    };
 
     try {
       store.saveLabTest(test);
