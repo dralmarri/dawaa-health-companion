@@ -189,7 +189,7 @@ const AddMedicationPage = () => {
 
   const stepLabels = [t.basicInfo, t.frequency, t.stock, t.confirm];
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const med: Medication = {
       id: editingMedication?.id || crypto.randomUUID(),
       name,
@@ -203,11 +203,10 @@ const AddMedicationPage = () => {
       imageUrl,
       createdAt: editingMedication?.createdAt || new Date().toISOString(),
     };
-    store.saveMedication(med);
-    scheduleMedicationNotifications();
+    await store.saveMedication(med);
+    await scheduleMedicationNotifications();
     navigate("/medications");
   };
-
   const canNext = () => {
     if (step === 1) return name.trim().length > 0;
     return true;
