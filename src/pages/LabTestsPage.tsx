@@ -74,43 +74,56 @@ const LabTestsPage = () => {
     (ref) =>
       ref.name.toLowerCase().includes(testSearch.toLowerCase()) ||
       ref.aliases.some((a) => a.toLowerCase().includes(testSearch.toLowerCase())) ||
-      ref.category.toLowerCase().includes(testSearch.toLowerCase())
-  );
+   const handleSave = async () => {
+    const hasManualValues = manualEntries.some((entry) => entry.value.trim() !== "");
+    const canSave = Boolean(name.trim() || notes.trim() || attachedImage || hasManualValues);
+    if (!canSave) return;
 
-  const groupedTests = filteredTests.reduce((acc, ref) => {
-    if (!acc[ref.category]) acc[ref.category] = [];
-    acc[ref.category].push(ref);
-    return acc;
-  }, {} as Record<string, typeof labReferences>);
+    const testId = crypto.randomUUID();
+    const allResults = getManualResults();
+    const generatedName = name.trim() || (isRTL ? `تحليل ${format(new Date(), "yyyy/MM/dd")}` : `Lab Test ${format(new Date(), "yyyy/MM/dd")}`);
 
-  const alreadyAdded = new Set(manualEntries.map((e) => e.testName));
+    const test: LabTest = {
+      id: testId,
+      name: generatedName,
+      notes: notes.trim(),
+      fileUrl: attachedImage || undefined,
+      date: new Date().toISOString(),
+    };
 
-  const compressImage = (file: File, maxWidth = 800, quality = 0.6): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = document.createElement("img");
-      const reader = new FileReader();
-      reader.onload = () => {
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const ratio = Math.min(maxWidth / img.width, maxWidth / img.height, 1);
-          canvas.width = img.width * ratio;
-          canvas.height = img.height * ratio;
-          const ctx = canvas.getContext("2d")!;
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL("image/jpeg", quality));
-        };
-        img.onerror = reject;
-        img.src = reader.result as string;
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+    try {
+      await store.saveLabTest(test);
+      if (allResults.length > 0) {
+        const stored = JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}");
+        stored[testId] = allResults;
+        localStorage.setItem("dawaa_lab_results", JSON.stringify(stored));
+        setSavedResults((prev) => ({ ...prev, [testId]: allResults }));
+      }
+      setTests(store.getLabTests());
+      resetForm();
+    } catch (err) {
+      console.error("Save error:", err);
+      if (attachedImage && attachedImage.length > 1000) {
+        test.fileUrl = undefined;
+        try {
+          await store.saveLabTest(test);
+          if (allResults.length > 0) {
+            const stored = JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}");
+            stored[testId] = allResults;
+            localStorage.setItem("dawaa_lab_results", JSON.stringify(stored));
+            setSavedResults((prev) => ({ ...prev, [testId]: allResults }));
+          }
+          setTests(store.getLabTests());
+          resetForm();
+          alert(isRTL ? "تم الحفظ بدون الصورة (المساحة ممتلئة)" : "Saved without image (storage full)");
+        } catch {
+          alert(isRTL ? "فشل الحفظ - المساحة ممتلئة" : "Save failed - storage full");
+        }
+      } else {
+        alert(isRTL ? "فشل الحفظ" : "Save failed");
+      }
+    }
   };
-
-  const handleFileAttach = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setAttachedImageName(file.name);
     if (file.type.startsWith("image/")) {
       try {
         const compressed = await compressImage(file);
