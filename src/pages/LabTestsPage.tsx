@@ -28,7 +28,6 @@ const LabTestsPage = () => {
   const [attachedImageName, setAttachedImageName] = useState("");
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
-  // Manual entry state
   const [manualEntries, setManualEntries] = useState<ManualEntry[]>([]);
   const [showTestPicker, setShowTestPicker] = useState(false);
   const [testSearch, setTestSearch] = useState("");
@@ -74,7 +73,59 @@ const LabTestsPage = () => {
     (ref) =>
       ref.name.toLowerCase().includes(testSearch.toLowerCase()) ||
       ref.aliases.some((a) => a.toLowerCase().includes(testSearch.toLowerCase())) ||
-   const handleSave = async () => {
+      ref.category.toLowerCase().includes(testSearch.toLowerCase())
+  );
+
+  const groupedTests = filteredTests.reduce((acc, ref) => {
+    if (!acc[ref.category]) acc[ref.category] = [];
+    acc[ref.category].push(ref);
+    return acc;
+  }, {} as Record<string, typeof labReferences>);
+
+  const alreadyAdded = new Set(manualEntries.map((e) => e.testName));
+
+  const compressImage = (file: File, maxWidth = 800, quality = 0.6): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = document.createElement("img");
+      const reader = new FileReader();
+      reader.onload = () => {
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const ratio = Math.min(maxWidth / img.width, maxWidth / img.height, 1);
+          canvas.width = img.width * ratio;
+          canvas.height = img.height * ratio;
+          const ctx = canvas.getContext("2d")!;
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = reject;
+        img.src = reader.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileAttach = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAttachedImageName(file.name);
+    if (file.type.startsWith("image/")) {
+      try {
+        const compressed = await compressImage(file);
+        setAttachedImage(compressed);
+      } catch {
+        const reader = new FileReader();
+        reader.onload = () => setAttachedImage(reader.result as string);
+        reader.readAsDataURL(file);
+      }
+    } else if (file.type === "application/pdf") {
+      setAttachedImage("pdf:" + file.name);
+    }
+    if (imageInputRef.current) imageInputRef.current.value = "";
+  };
+
+  const handleSave = async () => {
     const hasManualValues = manualEntries.some((entry) => entry.value.trim() !== "");
     const canSave = Boolean(name.trim() || notes.trim() || attachedImage || hasManualValues);
     if (!canSave) return;
@@ -112,73 +163,8 @@ const LabTestsPage = () => {
             stored[testId] = allResults;
             localStorage.setItem("dawaa_lab_results", JSON.stringify(stored));
             setSavedResults((prev) => ({ ...prev, [testId]: allResults }));
-        const handleDelete = async (id: string) => {
-    const confirmed = window.confirm(isRTL ? "هل أنت متأكد من حذف هذا التحليل؟" : "Are you sure you want to delete this lab test?");
-    if (!confirmed) return;
-    await store.deleteLabTest(id);
-    const allResults = JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}");
-    delete allResults[id];
-    localStorage.setItem("dawaa_lab_results", JSON.stringify(allResults));
-    setTests(store.getLabTests());
-  };
-      }
- const handlePrint = (test: LabTest) => {
-    const results = savedResults[test.id] || JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}")[test.id];
-
-    let text = `${test.name}\n`;
-    text += `${format(new Date(test.date), "yyyy/MM/dd - hh:mm a")}\n`;
-    if (test.notes) text += `${test.notes}\n`;
-    text += `\n`;
-
-    if (results && results.length > 0) {
-      results.forEach((r: AnalyzedResult) => {
-        const status = r.status === "normal" ? "✓" : r.status === "high" ? "⬆ عالي" : "⬇ منخفض";
-        text += `${r.testName}: ${r.value} ${r.unit} [${r.normalRange.min}-${r.normalRange.max}] ${status}\n`;
-      });
-    }
-
-    const el = document.createElement("textarea");
-    el.value = text;
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand("copy");
-    document.body.removeChild(el);
-    alert(isRTL ? "تم نسخ التقرير - الصق في أي تطبيق للطباعة" : "Report copied - paste in any app to print");
-  };
-
-   try {
-      await store.saveLabTest(test);
-      if (allResults.length > 0) {
-        const stored = JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}");
-        stored[testId] = allResults;
-        localStorage.setItem("dawaa_lab_results", JSON.stringify(stored));
-        setSavedResults((prev) => ({ ...prev, [testId]: allResults }));
-      }
-      setTests(store.getLabTests());
-      resetForm();
-    } catch (err) {
-      console.error("Save error:", err);
-      if (attachedImage && attachedImage.length > 1000) {
-        test.fileUrl = undefined;
-        try {
-          await store.saveLabTest(test);
-          if (allResults.length > 0) {
-            const stored = JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}");
-            stored[testId] = allResults;
-            localStorage.setItem("dawaa_lab_results", JSON.stringify(stored));
-            setSavedResults((prev) => ({ ...prev, [testId]: allResults }));
           }
           setTests(store.getLabTests());
-          resetForm();
-          alert(isRTL ? "تم الحفظ بدون الصورة (المساحة ممتلئة)" : "Saved without image (storage full)");
-        } catch {
-          alert(isRTL ? "فشل الحفظ - المساحة ممتلئة" : "Save failed - storage full");
-        }
-      } else {
-        alert(isRTL ? "فشل الحفظ" : "Save failed");
-      }
-    }
-  };
           resetForm();
           alert(isRTL ? "تم الحفظ بدون الصورة (المساحة ممتلئة)" : "Saved without image (storage full)");
         } catch {
@@ -200,10 +186,10 @@ const LabTestsPage = () => {
     setAttachedImageName("");
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     const confirmed = window.confirm(isRTL ? "هل أنت متأكد من حذف هذا التحليل؟" : "Are you sure you want to delete this lab test?");
     if (!confirmed) return;
-    store.deleteLabTest(id);
+    await store.deleteLabTest(id);
     const allResults = JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}");
     delete allResults[id];
     localStorage.setItem("dawaa_lab_results", JSON.stringify(allResults));
@@ -224,49 +210,26 @@ const LabTestsPage = () => {
 
   const handlePrint = (test: LabTest) => {
     const results = savedResults[test.id] || JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}")[test.id];
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
 
-    const resultsHtml = results ? results.map((r: AnalyzedResult) => `
-      <tr style="border-bottom:1px solid #eee;">
-        <td style="padding:8px;font-weight:bold;">${r.testName}</td>
-        <td style="padding:8px;text-align:center;">${r.value} ${r.unit}</td>
-        <td style="padding:8px;text-align:center;">${r.normalRange.min} - ${r.normalRange.max}</td>
-        <td style="padding:8px;text-align:center;color:${r.status === 'normal' ? '#22c55e' : r.status === 'high' ? '#ef4444' : '#f97316'};font-weight:bold;">
-          ${r.status === 'normal' ? '✓' : r.status === 'high' ? '⬆ High' : '⬇ Low'}
-        </td>
-      </tr>
-    `).join("") : "";
+    let text = `${test.name}\n`;
+    text += `${format(new Date(test.date), "yyyy/MM/dd - hh:mm a")}\n`;
+    if (test.notes) text += `${test.notes}\n`;
+    text += `\n`;
 
-    const imageHtml = test.fileUrl && !test.fileUrl.startsWith("pdf:")
-      ? `<div style="margin:20px 0;text-align:center;"><img src="${test.fileUrl}" style="max-width:100%;max-height:500px;border:1px solid #ddd;border-radius:8px;" /></div>`
-      : "";
+    if (results && results.length > 0) {
+      results.forEach((r: AnalyzedResult) => {
+        const status = r.status === "normal" ? "✓" : r.status === "high" ? "⬆ عالي" : "⬇ منخفض";
+        text += `${r.testName}: ${r.value} ${r.unit} [${r.normalRange.min}-${r.normalRange.max}] ${status}\n`;
+      });
+    }
 
-    printWindow.document.write(`
-      <html dir="${isRTL ? 'rtl' : 'ltr'}">
-      <head><title>${test.name}</title></head>
-      <body style="font-family:Arial,sans-serif;padding:20px;max-width:800px;margin:0 auto;">
-        <h1 style="color:#333;border-bottom:2px solid #0ea5e9;padding-bottom:10px;">${test.name}</h1>
-        <p style="color:#666;">${format(new Date(test.date), "yyyy/MM/dd - hh:mm a")}</p>
-        ${test.notes ? `<p style="color:#666;margin:10px 0;">${test.notes}</p>` : ""}
-        ${imageHtml}
-        ${results && results.length > 0 ? `
-          <table style="width:100%;border-collapse:collapse;margin-top:20px;">
-            <thead>
-              <tr style="background:#f1f5f9;border-bottom:2px solid #e2e8f0;">
-                <th style="padding:10px;text-align:${isRTL ? 'right' : 'left'};">${isRTL ? 'الفحص' : 'Test'}</th>
-                <th style="padding:10px;text-align:center;">${isRTL ? 'النتيجة' : 'Result'}</th>
-                <th style="padding:10px;text-align:center;">${isRTL ? 'المعدل الطبيعي' : 'Normal Range'}</th>
-                <th style="padding:10px;text-align:center;">${isRTL ? 'الحالة' : 'Status'}</th>
-              </tr>
-            </thead>
-            <tbody>${resultsHtml}</tbody>
-          </table>
-        ` : ""}
-      </body></html>
-    `);
-    printWindow.document.close();
-    printWindow.print();
+    const el = document.createElement("textarea");
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand("copy");
+    document.body.removeChild(el);
+    alert(isRTL ? "تم نسخ التقرير - الصق في أي تطبيق للطباعة" : "Report copied - paste in any app to print");
   };
 
   const getStatusIcon = (status: string) => {
@@ -355,8 +318,7 @@ const LabTestsPage = () => {
   return (
     <div className="pb-28">
       <PageHeader title={t.labTests} showBack onAdd={() => setShowForm(true)} />
-      
-      {/* Fullscreen Image Viewer */}
+
       {fullscreenImage && (
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
@@ -387,7 +349,6 @@ const LabTestsPage = () => {
         />
       ) : (
         <div className="px-4 space-y-3 mt-4">
-          {/* Section title */}
           {tests.length > 0 && !showForm && (
             <h2 className="text-base font-bold text-foreground flex items-center gap-2">
               📋 {isRTL ? "التحاليل السابقة" : "Previous Tests"} ({tests.length})
@@ -402,7 +363,6 @@ const LabTestsPage = () => {
 
             return (
               <div key={test.id} className="bg-card rounded-2xl border border-border overflow-hidden">
-                {/* Header */}
                 <div className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -422,7 +382,6 @@ const LabTestsPage = () => {
                     </button>
                   </div>
 
-                  {/* Action buttons */}
                   <div className="flex gap-2 mt-3 flex-wrap">
                     {hasImage && (
                       <button
@@ -459,7 +418,6 @@ const LabTestsPage = () => {
                   </div>
                 </div>
 
-                {/* Image thumbnail */}
                 {hasImage && (
                   <div
                     className="relative cursor-pointer group border-t border-border"
@@ -476,7 +434,6 @@ const LabTestsPage = () => {
                   </div>
                 )}
 
-                {/* Results */}
                 {showResults === test.id && savedResults[test.id] && (
                   <div className="p-4 border-t border-border">
                     <ResultsView results={savedResults[test.id]} />
@@ -488,7 +445,6 @@ const LabTestsPage = () => {
         </div>
       )}
 
-      {/* Add Form */}
       {showForm && (
         <div className="px-4 mt-4">
           <div className="bg-card rounded-2xl border border-border p-5 space-y-4">
@@ -509,7 +465,6 @@ const LabTestsPage = () => {
               />
             </div>
 
-            {/* Attach Image */}
             <div>
               <label className="text-base font-bold text-foreground block mb-2">📷 {isRTL ? "إرفاق صورة التحليل" : "Attach Lab Image"}</label>
               {attachedImage ? (
@@ -548,7 +503,6 @@ const LabTestsPage = () => {
               />
             </div>
 
-            {/* Manual Entry */}
             <div className="space-y-3">
               <label className="text-base font-bold text-foreground block">📝 {t.manualEntry}</label>
 
@@ -560,9 +514,7 @@ const LabTestsPage = () => {
                 return (
                   <div
                     key={entry.id}
-                    className={`rounded-xl border p-3 ${
-                      isOutOfRange ? "border-destructive/30 bg-destructive/5" : "border-border bg-card/50"
-                    }`}
+                    className={`rounded-xl border p-3 ${isOutOfRange ? "border-destructive/30 bg-destructive/5" : "border-border bg-card/50"}`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -586,9 +538,7 @@ const LabTestsPage = () => {
                       value={entry.value}
                       onChange={(e) => updateEntryValue(entry.id, e.target.value)}
                       placeholder={t.enterValue}
-                      className={`w-full px-3 py-2 rounded-lg border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${
-                        isOutOfRange ? "border-destructive/40" : "border-border"
-                      }`}
+                      className={`w-full px-3 py-2 rounded-lg border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm ${isOutOfRange ? "border-destructive/40" : "border-border"}`}
                     />
                     {isOutOfRange && ref && (
                       <p className="text-xs text-destructive mt-1">
@@ -630,11 +580,7 @@ const LabTestsPage = () => {
                               key={ref.name}
                               disabled={alreadyAdded.has(ref.name)}
                               onClick={() => addManualEntry(ref.name, false)}
-                              className={`w-full text-start px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${
-                                alreadyAdded.has(ref.name)
-                                  ? "bg-muted text-muted-foreground opacity-50"
-                                  : "hover:bg-primary/10 text-foreground"
-                              }`}
+                              className={`w-full text-start px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${alreadyAdded.has(ref.name) ? "bg-muted text-muted-foreground opacity-50" : "hover:bg-primary/10 text-foreground"}`}
                             >
                               <span className="font-medium">{ref.name}</span>
                               <span className="text-xs text-muted-foreground">
@@ -657,9 +603,7 @@ const LabTestsPage = () => {
                         className="flex-1 px-3 py-2 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
                       />
                       <button
-                        onClick={() => {
-                          if (customTestName.trim()) addManualEntry(customTestName.trim(), true);
-                        }}
+                        onClick={() => { if (customTestName.trim()) addManualEntry(customTestName.trim(), true); }}
                         disabled={!customTestName.trim()}
                         className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50"
                       >
