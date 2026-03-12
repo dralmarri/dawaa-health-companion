@@ -1,6 +1,10 @@
 import { useEffect, useCallback } from 'react';
-import { requestNotificationPermission, scheduleMedicationNotifications, startNotificationLoop, getPermissionStatus } from '@/lib/notifications';
-// import { checkAndEscalate } from '@/lib/escalation'; // disabled temporarily
+import {
+  requestNotificationPermission,
+  scheduleMedicationNotifications,
+  startNotificationLoop,
+  getPermissionStatus,
+} from '@/lib/notifications';
 import { store } from '@/lib/store';
 
 export function useNotifications() {
@@ -11,16 +15,15 @@ export function useNotifications() {
     const init = async () => {
       const granted = await requestNotificationPermission();
       if (granted) {
-        startNotificationLoop();
+        await startNotificationLoop();
       }
     };
-    init();
 
-    return () => {};
+    init();
   }, []);
 
-  const reschedule = useCallback(() => {
-    scheduleMedicationNotifications();
+  const reschedule = useCallback(async () => {
+    await scheduleMedicationNotifications();
   }, []);
 
   return { reschedule, getPermissionStatus };
