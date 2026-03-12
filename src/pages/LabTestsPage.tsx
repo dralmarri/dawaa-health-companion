@@ -146,8 +146,8 @@ const LabTestsPage = () => {
     alert(isRTL ? "تم نسخ التقرير - الصق في أي تطبيق للطباعة" : "Report copied - paste in any app to print");
   };
 
-    try {
-      store.saveLabTest(test);
+   try {
+      await store.saveLabTest(test);
       if (allResults.length > 0) {
         const stored = JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}");
         stored[testId] = allResults;
@@ -161,7 +161,7 @@ const LabTestsPage = () => {
       if (attachedImage && attachedImage.length > 1000) {
         test.fileUrl = undefined;
         try {
-          store.saveLabTest(test);
+          await store.saveLabTest(test);
           if (allResults.length > 0) {
             const stored = JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}");
             stored[testId] = allResults;
@@ -169,6 +169,16 @@ const LabTestsPage = () => {
             setSavedResults((prev) => ({ ...prev, [testId]: allResults }));
           }
           setTests(store.getLabTests());
+          resetForm();
+          alert(isRTL ? "تم الحفظ بدون الصورة (المساحة ممتلئة)" : "Saved without image (storage full)");
+        } catch {
+          alert(isRTL ? "فشل الحفظ - المساحة ممتلئة" : "Save failed - storage full");
+        }
+      } else {
+        alert(isRTL ? "فشل الحفظ" : "Save failed");
+      }
+    }
+  };
           resetForm();
           alert(isRTL ? "تم الحفظ بدون الصورة (المساحة ممتلئة)" : "Saved without image (storage full)");
         } catch {
