@@ -22,11 +22,21 @@ const queryClient = new QueryClient();
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   useNotifications();
+  useEffect(() => {
+    document.body.style.overflowX = "hidden";
+    document.documentElement.style.overflowX = "hidden";
+    return () => {
+      document.body.style.overflowX = "";
+      document.documentElement.style.overflowX = "";
+    };
+  }, []);
   return (
-    <div className="max-w-lg mx-auto min-h-[100dvh] bg-background relative">
+    <div className="max-w-lg mx-auto min-h-[100dvh] bg-background relative overflow-x-hidden">
       {children}
       <BottomNav />
     </div>
+  );
+};
   );
 };
 
