@@ -49,10 +49,10 @@ const SettingsPage = () => {
     { icon: Mail, label: t.contactUs, action: () => window.open("mailto:dralmarri@gmail.com", "_blank") },
     { icon: Info, label: t.version, value: "1.0.5" },
   ];
-
-  const reminderMap: Record<string, string> = {
-    "At time": t.atTime, "5 minutes": t.min5, "10 minutes": t.min10, "15 minutes": t.min15,
-  };
+  €
+const reminderMap: Record<string, string> = {
+    "0": t.atTime, "5": t.min5, "10": t.min10, "15": t.min15, "30": t.min30, "60": t.min60,
+};
   const reminderKeys = Object.keys(reminderMap);
   const reminderLabels = Object.values(reminderMap);
 
