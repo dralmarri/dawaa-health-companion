@@ -1,3 +1,4 @@
+import { Preferences } from '@capacitor/preferences';
 import { Medication, BloodPressureReading, Appointment, LabTest, DoseRecord, AppSettings } from '@/types';
 
 const KEYS = {
@@ -9,75 +10,110 @@ const KEYS = {
   settings: 'dawaa_settings',
 };
 
-function get<T>(key: string, fallback: T): T {
-  try {
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : fallback;
-  } catch { return fallback; }
+const defaultSettings: AppSettings = {
+  language: 'en',
+  userName: '',
+  notifications: true,
+  voiceNotifications: false,
+  reminderBefore: '5',
+  escalationOnMissed: false,
+};
+
+// ── Sync cache (in-memory) ─────────────────────────────────────────
+const cache: Record<string, unknown> = {};
+
+async function loadAll() {
+  for (const key of Object.values(KEYS)) {
+    const { value } = await Preferences.get({ key });
+    if (value) {
+      try { cache[key] = JSON.parse(value); } catch { cache[key] = null; }
+    }
+  }
 }
 
-function set<T>(key: string, value: T) {
-  localStorage.setItem(key, JSON.stringify(value));
+function getCache<T>(key: string, fallback: T): T {
+  return (cache[key] as T) ?? fallback;
 }
 
+async function setCache<T>(key: string, value: T) {
+  cache[key] = value;
+  await Preferences.set({ key, value: JSON.stringify(value) });
+}
+
+// استدعِ هذه الدالة مرة واحدة عند بدء التطبيق
+export async function initStore() {
+  await loadAll();
+}
+
+// ── Store API ──────────────────────────────────────────────────────
 export const store = {
-  getMedications: (): Medication[] => get(KEYS.medications, []),
-  saveMedication: (med: Medication) => {
+  getMedications: (): Medication[] =>
+    getCache(KEYS.medications, []),
+
+  saveMedication: async (med: Medication) => {
     const all = store.getMedications();
     const idx = all.findIndex(m => m.id === med.id);
     if (idx >= 0) all[idx] = med; else all.push(med);
-    set(KEYS.medications, all);
-  },
-  deleteMedication: (id: string) => {
-    set(KEYS.medications, store.getMedications().filter(m => m.id !== id));
+    await setCache(KEYS.medications, all);
   },
 
-  getReadings: (): BloodPressureReading[] => get(KEYS.readings, []),
-  saveReading: (r: BloodPressureReading) => {
+  deleteMedication: async (id: string) => {
+    await setCache(KEYS.medications, store.getMedications().filter(m => m.id !== id));
+  },
+
+  getReadings: (): BloodPressureReading[] =>
+    getCache(KEYS.readings, []),
+
+  saveReading: async (r: BloodPressureReading) => {
     const all = store.getReadings();
     all.unshift(r);
-    set(KEYS.readings, all);
-  },
-  deleteReading: (id: string) => {
-    set(KEYS.readings, store.getReadings().filter(r => r.id !== id));
+    await setCache(KEYS.readings, all);
   },
 
-  getAppointments: (): Appointment[] => get(KEYS.appointments, []),
-  saveAppointment: (a: Appointment) => {
+  deleteReading: async (id: string) => {
+    await setCache(KEYS.readings, store.getReadings().filter(r => r.id !== id));
+  },
+
+  getAppointments: (): Appointment[] =>
+    getCache(KEYS.appointments, []),
+
+  saveAppointment: async (a: Appointment) => {
     const all = store.getAppointments();
     const idx = all.findIndex(x => x.id === a.id);
     if (idx >= 0) all[idx] = a; else all.push(a);
-    set(KEYS.appointments, all);
-  },
-  deleteAppointment: (id: string) => {
-    set(KEYS.appointments, store.getAppointments().filter(a => a.id !== id));
+    await setCache(KEYS.appointments, all);
   },
 
-  getLabTests: (): LabTest[] => get(KEYS.labTests, []),
-  saveLabTest: (t: LabTest) => {
+  deleteAppointment: async (id: string) => {
+    await setCache(KEYS.appointments, store.getAppointments().filter(a => a.id !== id));
+  },
+
+  getLabTests: (): LabTest[] =>
+    getCache(KEYS.labTests, []),
+
+  saveLabTest: async (t: LabTest) => {
     const all = store.getLabTests();
     all.push(t);
-    set(KEYS.labTests, all);
-  },
-  deleteLabTest: (id: string) => {
-    set(KEYS.labTests, store.getLabTests().filter(t => t.id !== id));
+    await setCache(KEYS.labTests, all);
   },
 
-  getDoseRecords: (): DoseRecord[] => get(KEYS.doseRecords, []),
-  saveDoseRecord: (d: DoseRecord) => {
+  deleteLabTest: async (id: string) => {
+    await setCache(KEYS.labTests, store.getLabTests().filter(t => t.id !== id));
+  },
+
+  getDoseRecords: (): DoseRecord[] =>
+    getCache(KEYS.doseRecords, []),
+
+  saveDoseRecord: async (d: DoseRecord) => {
     const all = store.getDoseRecords();
     const idx = all.findIndex(x => x.id === d.id);
     if (idx >= 0) all[idx] = d; else all.push(d);
-    set(KEYS.doseRecords, all);
+    await setCache(KEYS.doseRecords, all);
   },
 
-  getSettings: (): AppSettings => get(KEYS.settings, {
-    language: 'en',
-    userName: '',
-    notifications: true,
-    voiceNotifications: false,
-    reminderBefore: '5 minutes',
-    escalationOnMissed: false,
-  }),
-  saveSettings: (s: AppSettings) => set(KEYS.settings, s),
+  getSettings: (): AppSettings =>
+    getCache(KEYS.settings, defaultSettings),
+
+  saveSettings: async (s: AppSettings) =>
+    await setCache(KEYS.settings, s),
 };
