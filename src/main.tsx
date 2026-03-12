@@ -11,5 +11,3 @@ initStore().then(() => {
     </ErrorBoundary>
   );
 });
-  </ErrorBoundary>
-);
