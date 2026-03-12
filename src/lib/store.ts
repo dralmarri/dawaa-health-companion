@@ -1,5 +1,6 @@
 import { Preferences } from '@capacitor/preferences';
 import { Medication, BloodPressureReading, Appointment, LabTest, DoseRecord, AppSettings } from '@/types';
+import { cloudStore } from '@/lib/cloudStore';
 
 const KEYS = {
   medications: 'dawaa_medications',
@@ -40,9 +41,19 @@ async function setCache<T>(key: string, value: T) {
   await Preferences.set({ key, value: JSON.stringify(value) });
 }
 
-// استدعِ هذه الدالة مرة واحدة عند بدء التطبيق
 export async function initStore() {
   await loadAll();
+}
+
+// ── Cloud sync helper ──────────────────────────────────────────────
+let currentUid: string | null = null;
+
+export function setStoreUid(uid: string | null) {
+  currentUid = uid;
+}
+
+export function getStoreUid() {
+  return currentUid;
 }
 
 // ── Store API ──────────────────────────────────────────────────────
@@ -55,10 +66,12 @@ export const store = {
     const idx = all.findIndex(m => m.id === med.id);
     if (idx >= 0) all[idx] = med; else all.push(med);
     await setCache(KEYS.medications, all);
+    if (currentUid) await cloudStore.saveMedication(currentUid, med);
   },
 
   deleteMedication: async (id: string) => {
     await setCache(KEYS.medications, store.getMedications().filter(m => m.id !== id));
+    if (currentUid) await cloudStore.deleteMedication(currentUid, id);
   },
 
   getReadings: (): BloodPressureReading[] =>
@@ -68,10 +81,12 @@ export const store = {
     const all = store.getReadings();
     all.unshift(r);
     await setCache(KEYS.readings, all);
+    if (currentUid) await cloudStore.saveReading(currentUid, r);
   },
 
   deleteReading: async (id: string) => {
     await setCache(KEYS.readings, store.getReadings().filter(r => r.id !== id));
+    if (currentUid) await cloudStore.deleteReading(currentUid, id);
   },
 
   getAppointments: (): Appointment[] =>
@@ -82,10 +97,12 @@ export const store = {
     const idx = all.findIndex(x => x.id === a.id);
     if (idx >= 0) all[idx] = a; else all.push(a);
     await setCache(KEYS.appointments, all);
+    if (currentUid) await cloudStore.saveAppointment(currentUid, a);
   },
 
   deleteAppointment: async (id: string) => {
     await setCache(KEYS.appointments, store.getAppointments().filter(a => a.id !== id));
+    if (currentUid) await cloudStore.deleteAppointment(currentUid, id);
   },
 
   getLabTests: (): LabTest[] =>
@@ -95,10 +112,12 @@ export const store = {
     const all = store.getLabTests();
     all.push(t);
     await setCache(KEYS.labTests, all);
+    if (currentUid) await cloudStore.saveLabTest(currentUid, t);
   },
 
   deleteLabTest: async (id: string) => {
     await setCache(KEYS.labTests, store.getLabTests().filter(t => t.id !== id));
+    if (currentUid) await cloudStore.deleteLabTest(currentUid, id);
   },
 
   getDoseRecords: (): DoseRecord[] =>
@@ -109,11 +128,43 @@ export const store = {
     const idx = all.findIndex(x => x.id === d.id);
     if (idx >= 0) all[idx] = d; else all.push(d);
     await setCache(KEYS.doseRecords, all);
+    if (currentUid) await cloudStore.saveDoseRecord(currentUid, d);
   },
 
   getSettings: (): AppSettings =>
     getCache(KEYS.settings, defaultSettings),
 
-  saveSettings: async (s: AppSettings) =>
-    await setCache(KEYS.settings, s),
+  saveSettings: async (s: AppSettings) => {
+    await setCache(KEYS.settings, s);
+    if (currentUid) await cloudStore.saveSettings(currentUid, s);
+  },
 };
+
+// ── Load cloud data into local cache ──────────────────────────────
+export async function syncFromCloud(uid: string) {
+  try {
+    const [medications, readings, appointments, labTests, doseRecords, settings] = await Promise.all([
+      cloudStore.getMedications(uid),
+      cloudStore.getReadings(uid),
+      cloudStore.getAppointments(uid),
+      cloudStore.getLabTests(uid),
+      cloudStore.getDoseRecords(uid),
+      cloudStore.getSettings(uid),
+    ]);
+
+    if (medications.length) await setCache(KEYS.medications, medications);
+    if (readings.length) await setCache(KEYS.readings, readings.sort((a, b) => b.date.localeCompare(a.date)));
+    if (appointments.length) await setCache(KEYS.appointments, appointments);
+    if (labTests.length) await setCache(KEYS.labTests, labTests.sort((a, b) => b.date.localeCompare(a.date)));
+    if (doseRecords.length) await setCache(KEYS.doseRecords, doseRecords);
+    if (settings) await setCache(KEYS.settings, settings);
+
+    // Sync lab results
+    const labResults = await cloudStore.getLabResults(uid);
+    if (Object.keys(labResults).length) {
+      localStorage.setItem("dawaa_lab_results", JSON.stringify(labResults));
+    }
+  } catch (err) {
+    console.error("Cloud sync error:", err);
+  }
+}
