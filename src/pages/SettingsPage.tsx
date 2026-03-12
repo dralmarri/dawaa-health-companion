@@ -16,10 +16,9 @@ const SettingsPage = () => {
   const update = async (partial: Partial<AppSettings>) => {
     const next = { ...settings, ...partial };
     setSettings(next);
-await store.saveSettings(next);
-    // Re-schedule notifications on any settings change
+    await store.saveSettings(next);
     if (partial.notifications !== undefined || partial.reminderBefore !== undefined) {
-     if (next.notifications) {
+      if (next.notifications) {
         const granted = await requestNotificationPermission();
         if (granted) {
           const count = await scheduleMedicationNotifications();
@@ -32,6 +31,7 @@ await store.saveSettings(next);
       } else {
         await scheduleMedicationNotifications();
       }
+    }
   };
 
   const Chevron = isRTL ? ChevronLeft : ChevronRight;
@@ -47,9 +47,10 @@ await store.saveSettings(next);
     { icon: Mail, label: t.contactUs, action: () => window.open("mailto:dralmarri@gmail.com", "_blank") },
     { icon: Info, label: t.version, value: "1.0.5" },
   ];
-const reminderMap: Record<string, string> = {
+
+  const reminderMap: Record<string, string> = {
     "0": t.atTime, "5": t.min5, "10": t.min10, "15": t.min15, "30": t.min30, "60": t.min60,
-};
+  };
   const reminderKeys = Object.keys(reminderMap);
   const reminderLabels = Object.values(reminderMap);
 
@@ -115,7 +116,6 @@ const reminderMap: Record<string, string> = {
           <ChipSelector options={reminderLabels} value={reminderMap[settings.reminderBefore] || settings.reminderBefore}
             onChange={(v) => update({ reminderBefore: reminderKeys[reminderLabels.indexOf(v)] || v })} />
         </div>
-
 
         {/* Menu Items */}
         <div className="bg-card rounded-2xl border border-border divide-y divide-border">
