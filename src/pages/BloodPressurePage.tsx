@@ -29,11 +29,7 @@ const BloodPressurePage = () => {
 
   const periodLabels: Record<string, string> = { Morning: t.morning, Evening: t.evening };
 
-  const handleSave = () => {
-    if (!systolic || !diastolic || !heartRate) return;
-    const reading: BloodPressureReading = {
-      id: crypto.randomUUID(),
-      const handleSave = async () => {
+  const handleSave = async () => {
     if (!systolic || !diastolic || !heartRate) return;
     const reading: BloodPressureReading = {
       id: crypto.randomUUID(),
@@ -44,18 +40,38 @@ const BloodPressurePage = () => {
     setReadings(store.getReadings());
     setSystolic(""); setDiastolic(""); setHeartRate("");
   };
-    setReadings(store.getReadings());
-  };
-const handleDelete = async (id: string) => {
+
+  const handleDelete = async (id: string) => {
     const confirmed = window.confirm(isRTL ? "هل أنت متأكد من حذف هذه القراءة؟" : "Are you sure you want to delete this reading?");
     if (!confirmed) return;
     await store.deleteReading(id);
     setReadings(store.getReadings());
   };
+
+  return (
+    <div className="pb-28 overflow-x-hidden">
+      <PageHeader title={t.bloodPressureMonitoring} showBack />
+      <div className="px-3 sm:px-4 space-y-4 max-w-lg mx-auto">
+        {latestReading && (
+          <div className="bg-card rounded-2xl border border-border p-5">
             <div className="flex gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-xs sm:text-sm text-muted-foreground">{t.latestReading}</p>
-                {readings.length > 0 && (
+                <p className="text-2xl sm:text-3xl font-bold text-foreground">{latestReading.systolic}/{latestReading.diastolic}</p>
+                <p className="text-sm text-heart">♥ {latestReading.heartRate} bpm</p>
+                <span className={`text-sm font-medium ${getCategory(latestReading.systolic).color}`}>{getCategory(latestReading.systolic).label}</span>
+              </div>
+              <div className="border-s border-border ps-3 flex-1 min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground">{t.averageOfLast} {last7.length} {t.readings}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-foreground">{avgSys}/{avgDia}</p>
+                <p className="text-sm text-heart">♥ {avgHr} bpm</p>
+                <p className="text-xs text-muted-foreground">mmHg</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {readings.length > 0 && (
           <button onClick={() => {
             const printContent = readings.map(r =>
               `${r.date} ${r.time} - ${r.systolic}/${r.diastolic} mmHg - ♥ ${r.heartRate} bpm (${r.period})`
@@ -68,20 +84,6 @@ const handleDelete = async (id: string) => {
             document.body.removeChild(el);
             alert(isRTL ? 'تم نسخ البيانات - الصق في أي تطبيق للطباعة' : 'Data copied - paste in any app to print');
           }} className="w-full py-3 rounded-2xl bg-info text-info-foreground font-semibold text-center print-hide">
-            🖨️ {t.printReport}
-          </button>
-        )}
-                <p className="text-xs sm:text-sm text-muted-foreground">{t.averageOfLast} {last7.length} {t.readings}</p>
-                <p className="text-2xl sm:text-3xl font-bold text-foreground">{avgSys}/{avgDia}</p>
-                <p className="text-sm text-heart">♥ {avgHr} bpm</p>
-                <p className="text-xs text-muted-foreground">mmHg</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {readings.length > 0 && (
-          <button onClick={() => window.print()} className="w-full py-3 rounded-2xl bg-info text-info-foreground font-semibold text-center print-hide">
             🖨️ {t.printReport}
           </button>
         )}
