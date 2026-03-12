@@ -7,7 +7,6 @@ const config: CapacitorConfig = {
   ios: {
     contentInset: 'automatic',
     preferredContentMode: 'mobile',
-    scheme: 'Dawaa',
   },
   android: {
     allowMixedContent: false,
