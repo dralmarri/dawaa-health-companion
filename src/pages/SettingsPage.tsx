@@ -47,7 +47,6 @@ await store.saveSettings(next);
     { icon: Mail, label: t.contactUs, action: () => window.open("mailto:dralmarri@gmail.com", "_blank") },
     { icon: Info, label: t.version, value: "1.0.5" },
   ];
-  €
 const reminderMap: Record<string, string> = {
     "0": t.atTime, "5": t.min5, "10": t.min10, "15": t.min15, "30": t.min30, "60": t.min60,
 };
