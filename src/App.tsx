@@ -29,6 +29,7 @@ const SKIP_AUTH_KEY = "dawaa_skip_auth";
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   useNotifications();
+
   useEffect(() => {
     document.body.style.overflowX = "hidden";
     document.documentElement.style.overflowX = "hidden";
@@ -37,6 +38,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
       document.documentElement.style.overflowX = "";
     };
   }, []);
+
   return (
     <div className="max-w-lg mx-auto min-h-[100dvh] bg-background relative overflow-x-hidden">
       {children}
@@ -64,26 +66,75 @@ const AppRoutes = () => {
   );
 };
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("Operation timed out"));
+    }, ms);
+
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
+
 const AuthGate = () => {
   const { user, loading } = useAuth();
   const [skipped, setSkipped] = useState(() => localStorage.getItem(SKIP_AUTH_KEY) === "true");
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      setStoreUid(user.uid);
-      setSyncing(true);
-      syncFromCloud(user.uid).finally(() => setSyncing(false));
-    } else {
-      setStoreUid(null);
-    }
+    console.log("[AuthGate] loading =", loading, "user =", user?.uid ?? null, "skipped =", skipped);
+  }, [loading, user, skipped]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const runSync = async () => {
+      if (!user) {
+        console.log("[AuthGate] no user -> skip cloud sync");
+        setStoreUid(null);
+        setSyncing(false);
+        return;
+      }
+
+      try {
+        console.log("[AuthGate] start cloud sync for uid:", user.uid);
+        setStoreUid(user.uid);
+        setSyncing(true);
+
+        await withTimeout(syncFromCloud(user.uid), 10000);
+
+        console.log("[AuthGate] cloud sync completed");
+      } catch (err) {
+        console.error("[AuthGate] cloud sync failed:", err);
+      } finally {
+        if (!cancelled) {
+          setSyncing(false);
+        }
+      }
+    };
+
+    runSync();
+
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   if (loading || syncing) {
     return (
       <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center gap-4">
         <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-        <p className="text-sm text-muted-foreground">{syncing ? "جارٍ مزامنة البيانات..." : "جارٍ التحميل..."}</p>
+        <p className="text-sm text-muted-foreground">
+          {loading ? "جارٍ التحقق من تسجيل الدخول..." : "جارٍ مزامنة البيانات..."}
+        </p>
       </div>
     );
   }
