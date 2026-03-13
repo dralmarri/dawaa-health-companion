@@ -28,11 +28,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(false);
-    });
-    return unsubscribe;
+    let isMounted = true;
+
+    console.log("[AuthProvider] starting auth listener");
+
+    const timeout = window.setTimeout(() => {
+      if (isMounted) {
+        console.warn("[AuthProvider] auth listener timeout -> forcing loading=false");
+        setLoading(false);
+      }
+    }, 8000);
+
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (u) => {
+        if (!isMounted) return;
+        console.log("[AuthProvider] auth state changed:", u?.uid ?? null);
+        clearTimeout(timeout);
+        setUser(u);
+        setLoading(false);
+      },
+      (err) => {
+        if (!isMounted) return;
+        console.error("[AuthProvider] auth listener error:", err);
+        clearTimeout(timeout);
+        setUser(null);
+        setLoading(false);
+        setError("تعذر التحقق من حالة تسجيل الدخول");
+      }
+    );
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeout);
+      unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string) => {
@@ -58,7 +88,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logOut = async () => {
-    await signOut(auth);
+    try {
+      setError(null);
+      await signOut(auth);
+    } catch (e: any) {
+      const msg = getErrorMessage(e.code);
+      setError(msg);
+      throw new Error(msg);
+    }
   };
 
   const resetPassword = async (email: string) => {
@@ -75,7 +112,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const clearError = () => setError(null);
 
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, logOut, resetPassword, error, clearError }}>
+    <AuthContext.Provider
+      value={{ user, loading, signUp, signIn, logOut, resetPassword, error, clearError }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -89,13 +128,21 @@ export const useAuth = () => {
 
 function getErrorMessage(code: string): string {
   switch (code) {
-    case "auth/email-already-in-use": return "البريد الإلكتروني مستخدم بالفعل";
-    case "auth/invalid-email": return "البريد الإلكتروني غير صحيح";
-    case "auth/weak-password": return "كلمة المرور ضعيفة جداً (6 أحرف على الأقل)";
-    case "auth/user-not-found": return "لا يوجد حساب بهذا البريد الإلكتروني";
-    case "auth/wrong-password": return "كلمة المرور غير صحيحة";
-    case "auth/invalid-credential": return "البريد الإلكتروني أو كلمة المرور غير صحيحة";
-    case "auth/too-many-requests": return "تم تجاوز عدد المحاولات، حاول لاحقاً";
-    default: return "حدث خطأ، حاول مرة أخرى";
+    case "auth/email-already-in-use":
+      return "البريد الإلكتروني مستخدم بالفعل";
+    case "auth/invalid-email":
+      return "البريد الإلكتروني غير صحيح";
+    case "auth/weak-password":
+      return "كلمة المرور ضعيفة جداً (6 أحرف على الأقل)";
+    case "auth/user-not-found":
+      return "لا يوجد حساب بهذا البريد الإلكتروني";
+    case "auth/wrong-password":
+      return "كلمة المرور غير صحيحة";
+    case "auth/invalid-credential":
+      return "البريد الإلكتروني أو كلمة المرور غير صحيحة";
+    case "auth/too-many-requests":
+      return "تم تجاوز عدد المحاولات، حاول لاحقاً";
+    default:
+      return "حدث خطأ، حاول مرة أخرى";
   }
 }
