@@ -163,7 +163,9 @@ const App = () => (
       <AuthProvider>
         <TooltipProvider>
           <Sonner />
-          <AuthGate />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
     </LanguageProvider>
