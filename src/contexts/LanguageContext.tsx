@@ -165,6 +165,9 @@ const translations = {
     customTest: "Custom test (not in list)",
     enterCustomTestName: "Enter test name",
     add: "Add",
+    dailySummary: "Daily Summary",
+    dailySummaryDesc: "Get a morning notification with all medications for the day",
+    dailySummaryTime: "Summary Time",
   },
   ar: {
     appName: "+دواء",
@@ -327,6 +330,9 @@ const translations = {
     customTest: "فحص مخصص (غير موجود في القائمة)",
     enterCustomTestName: "أدخل اسم الفحص",
     add: "إضافة",
+    dailySummary: "ملخص يومي",
+    dailySummaryDesc: "إشعار صباحي بجميع أدوية اليوم",
+    dailySummaryTime: "وقت الملخص",
   },
 };
 
