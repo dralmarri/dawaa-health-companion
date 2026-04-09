@@ -48,7 +48,7 @@ const AppRoutes = () => {
   return (
     <div className="min-h-[100dvh] bg-background pb-20">
       <Routes>
-        <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
+        <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage onSkip={() => {}} />} />
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="/medications" element={<ProtectedRoute><MedicationsPage /></ProtectedRoute>} />
         <Route path="/add-medication" element={<ProtectedRoute><AddMedicationPage /></ProtectedRoute>} />
