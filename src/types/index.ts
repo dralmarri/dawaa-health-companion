@@ -8,6 +8,7 @@ export interface Medication {
   mealRelation: 'No preference' | 'Before meal' | 'After meal' | 'With meal';
   notes: string;
   stock: number;
+  initialStock?: number;
   imageUrl?: string;
   createdAt: string;
 }

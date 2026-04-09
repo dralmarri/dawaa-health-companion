@@ -200,6 +200,7 @@ const AddMedicationPage = () => {
       mealRelation,
       notes,
       stock,
+      initialStock: editingMedication?.initialStock || stock,
       imageUrl,
       createdAt: editingMedication?.createdAt || new Date().toISOString(),
     };
