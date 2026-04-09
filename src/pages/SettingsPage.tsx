@@ -110,6 +110,28 @@ const SettingsPage = () => {
           </button>
         </div>
 
+        {/* Daily Summary */}
+        <div className="bg-card rounded-2xl border border-border p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h3 className="font-bold text-foreground flex items-center gap-2">📋 {t.dailySummary}</h3>
+              <p className="text-sm text-muted-foreground">{t.dailySummaryDesc}</p>
+            </div>
+            <button onClick={() => update({ dailySummary: !settings.dailySummary })}
+              className={`w-12 h-7 rounded-full transition-colors relative flex-shrink-0 ${settings.dailySummary ? "bg-primary" : "bg-border"}`}>
+              <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-card shadow transition-all ${settings.dailySummary ? "ltr:right-0.5 rtl:left-0.5" : "ltr:left-0.5 rtl:right-0.5"}`} />
+            </button>
+          </div>
+          {settings.dailySummary && (
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-muted-foreground">{t.dailySummaryTime}</label>
+              <input type="time" value={settings.dailySummaryTime || "08:00"}
+                onChange={(e) => update({ dailySummaryTime: e.target.value })}
+                className="px-3 py-2 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+            </div>
+          )}
+        </div>
+
         {/* Reminder */}
         <div className="bg-card rounded-2xl border border-border p-5">
           <label className="text-base font-bold text-foreground block mb-3">{t.reminderBefore}</label>
