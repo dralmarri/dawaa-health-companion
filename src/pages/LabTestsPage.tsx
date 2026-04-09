@@ -236,26 +236,60 @@ const LabTestsPage = () => {
 
   const handlePrint = (test: LabTest) => {
     const results = savedResults[test.id] || JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}")[test.id];
+    const header = test.name;
+    const dateStr = format(new Date(test.date), "yyyy/MM/dd - hh:mm a");
 
-    let text = `${test.name}\n`;
-    text += `${format(new Date(test.date), "yyyy/MM/dd - hh:mm a")}\n`;
-    if (test.notes) text += `${test.notes}\n`;
-    text += `\n`;
-
+    let rows = "";
     if (results && results.length > 0) {
-      results.forEach((r: AnalyzedResult) => {
-        const status = r.status === "normal" ? "✓" : r.status === "high" ? "⬆ عالي" : "⬇ منخفض";
-        text += `${r.testName}: ${r.value} ${r.unit} [${r.normalRange.min}-${r.normalRange.max}] ${status}\n`;
-      });
+      rows = results.map((r: AnalyzedResult) => {
+        const status = r.status === "normal" ? "✓ طبيعي" : r.status === "high" ? "⬆ عالي" : "⬇ منخفض";
+        const statusColor = r.status === "normal" ? "#16a34a" : r.status === "high" ? "#dc2626" : "#2563eb";
+        return `<tr><td>${r.testName}</td><td>${r.value} ${r.unit}</td><td>${r.normalRange.min}-${r.normalRange.max}</td><td style="color:${statusColor};font-weight:bold">${status}</td></tr>`;
+      }).join("");
     }
 
-    const el = document.createElement("textarea");
-    el.value = text;
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand("copy");
-    document.body.removeChild(el);
-    alert(isRTL ? "تم نسخ التقرير - الصق في أي تطبيق للطباعة" : "Report copied - paste in any app to print");
+    const printWindow = window.open("", "_blank", "noopener,noreferrer");
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <!doctype html>
+      <html lang="${isRTL ? "ar" : "en"}" dir="${isRTL ? "rtl" : "ltr"}">
+        <head>
+          <meta charset="utf-8" />
+          <title>${header}</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; padding: 32px 20px; color: #111827; }
+            .wrap { max-width: 900px; margin: 0 auto; }
+            h1 { margin: 0 0 4px; font-size: 24px; }
+            .date { color: #6b7280; margin-bottom: 8px; }
+            .notes { color: #374151; margin-bottom: 20px; padding: 10px; background: #f9fafb; border-radius: 8px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #d1d5db; padding: 10px 12px; text-align: ${isRTL ? "right" : "left"}; }
+            th { background: #f3f4f6; }
+          </style>
+        </head>
+        <body>
+          <div class="wrap">
+            <h1>${header}</h1>
+            <p class="date">${dateStr}</p>
+            ${test.notes ? `<div class="notes">${test.notes}</div>` : ""}
+            ${rows ? `<table>
+              <thead><tr>
+                <th>${isRTL ? "التحليل" : "Test"}</th>
+                <th>${isRTL ? "النتيجة" : "Result"}</th>
+                <th>${isRTL ? "المعدل الطبيعي" : "Normal Range"}</th>
+                <th>${isRTL ? "الحالة" : "Status"}</th>
+              </tr></thead>
+              <tbody>${rows}</tbody>
+            </table>` : `<p>${isRTL ? "لا توجد نتائج محللة" : "No analyzed results"}</p>`}
+          </div>
+          <script>
+            window.onload = function () { setTimeout(function () { window.print(); }, 350); };
+          <\/script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const getStatusIcon = (status: string) => {
