@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Share2, FileText, Shield, Mail, Info, Trash2, ChevronRight, ChevronLeft } from "lucide-react";
+import { Share2, FileText, Shield, Mail, Info, LogOut, ChevronRight, ChevronLeft } from "lucide-react";
 import { store } from "@/lib/store";
 import ChipSelector from "@/components/ChipSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { requestNotificationPermission, scheduleMedicationNotifications, getPermissionStatus } from "@/lib/notifications";
 import { toast } from "sonner";
 import type { AppSettings } from "@/types";
