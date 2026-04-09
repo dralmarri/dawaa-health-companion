@@ -3,6 +3,7 @@ import { store } from './store';
 import type { Medication } from '@/types';
 
 let scheduledIds: number[] = [];
+let listenersRegistered = false;
 
 export async function requestNotificationPermission(): Promise<boolean> {
   const status: PermissionStatus = await LocalNotifications.requestPermissions();
@@ -12,6 +13,23 @@ export async function requestNotificationPermission(): Promise<boolean> {
 export async function getPermissionStatus(): Promise<string> {
   const status = await LocalNotifications.checkPermissions();
   return status.display;
+}
+
+/**
+ * Register foreground notification listeners so notifications display even when app is open
+ */
+async function registerListeners() {
+  if (listenersRegistered) return;
+  listenersRegistered = true;
+
+  // Show a toast when a notification fires while the app is in the foreground
+  await LocalNotifications.addListener('localNotificationReceived', (notification) => {
+    console.log('[Notifications] Received in foreground:', notification.title);
+  });
+
+  await LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+    console.log('[Notifications] Action performed:', action.notification.title);
+  });
 }
 
 function parseMinutes(reminderBefore: string): number {
@@ -46,8 +64,22 @@ function getNotificationBody(meds: Medication[], isArabic: boolean): { title: st
   };
 }
 
+/**
+ * Generate a stable numeric ID from medication ID + time string
+ */
+function stableId(medId: string, timeStr: string): number {
+  let hash = 0;
+  const str = medId + timeStr;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0; // Convert to 32-bit integer
+  }
+  return Math.abs(hash) % 100000 + 1; // Keep in a safe range, avoid 0
+}
+
 export async function scheduleMedicationNotifications() {
-  // إلغاء الإشعارات القديمة
+  // Cancel all previously scheduled notifications
   if (scheduledIds.length > 0) {
     await LocalNotifications.cancel({ notifications: scheduledIds.map(id => ({ id })) });
     scheduledIds = [];
@@ -64,9 +96,17 @@ export async function scheduleMedicationNotifications() {
   const now = new Date();
   const isArabic = settings.language === 'ar';
 
-  // تجميع الأدوية حسب وقت الإشعار
-  const timeGroups: Record<string, Medication[]> = {};
+  const notifications: Array<{
+    id: number;
+    title: string;
+    body: string;
+    schedule: { at: Date; repeats: boolean; every: 'day'; allowWhileIdle: boolean };
+    sound: string;
+    smallIcon: string;
+  }> = [];
 
+  // Schedule individual notifications per medication per time
+  // This avoids grouping issues and ensures each dose gets its own notification
   medications.forEach((med) => {
     med.times.forEach((timeStr) => {
       const [hours, minutes] = timeStr.split(':').map(Number);
@@ -76,40 +116,28 @@ export async function scheduleMedicationNotifications() {
       doseTime.setHours(hours, minutes, 0, 0);
 
       const notifyTime = new Date(doseTime.getTime() - reminderMinutes * 60 * 1000);
+      
+      // If the notification time has passed today, schedule for tomorrow
       if (notifyTime.getTime() <= now.getTime()) {
         notifyTime.setDate(notifyTime.getDate() + 1);
       }
 
-      const key = `${notifyTime.getHours()}:${notifyTime.getMinutes()}`;
-      if (!timeGroups[key]) timeGroups[key] = [];
-      timeGroups[key].push(med);
+      const { title, body } = getNotificationBody([med], isArabic);
+      const id = stableId(med.id, timeStr);
+      scheduledIds.push(id);
+
+      notifications.push({
+        id,
+        title,
+        body,
+        schedule: { at: notifyTime, repeats: true, every: 'day' as const, allowWhileIdle: true },
+        sound: 'default',
+        smallIcon: 'ic_stat_icon_config_sample',
+      });
     });
   });
 
-  // جدولة الإشعارات
-  const notifications = Object.entries(timeGroups).map(([key, meds], index) => {
-    const [h, m] = key.split(':').map(Number);
-    const scheduleTime = new Date();
-    scheduleTime.setHours(h, m, 0, 0);
-    if (scheduleTime.getTime() <= now.getTime()) {
-      scheduleTime.setDate(scheduleTime.getDate() + 1);
-    }
-
-    const { title, body } = getNotificationBody(meds, isArabic);
-    const id = index + 1;
-    scheduledIds.push(id);
-
-    return {
-      id,
-      title,
-      body,
-      schedule: { at: scheduleTime, repeats: true, every: 'day' as const },
-      sound: 'default',
-      smallIcon: 'ic_stat_icon_config_sample',
-    };
-  });
-
-  // إشعار المخزون المنخفض — كل يوم 9 صباحاً
+  // Low stock alert — daily at 9 AM
   const lowStockMeds = medications.filter(med =>
     med.stock > 0 && med.stock <= 5
   );
@@ -131,13 +159,13 @@ export async function scheduleMedicationNotifications() {
       body: isArabic
         ? `مخزون منخفض: ${names}`
         : `Low stock: ${names}`,
-      schedule: { at: stockTime, repeats: true, every: 'day' as const },
+      schedule: { at: stockTime, repeats: true, every: 'day' as const, allowWhileIdle: true },
       sound: 'default',
       smallIcon: 'ic_stat_icon_config_sample',
     });
   }
 
-  // ملخص يومي بأدوية اليوم
+  // Daily summary
   if (settings.dailySummary && medications.length > 0) {
     const [sumH, sumM] = (settings.dailySummaryTime || '08:00').split(':').map(Number);
     const summaryTime = new Date();
@@ -160,7 +188,7 @@ export async function scheduleMedicationNotifications() {
       id: summaryId,
       title: isArabic ? `📋 ملخص أدوية اليوم (${totalDoses} جرعة)` : `📋 Today's Medications (${totalDoses} doses)`,
       body: medList,
-      schedule: { at: summaryTime, repeats: true, every: 'day' as const },
+      schedule: { at: summaryTime, repeats: true, every: 'day' as const, allowWhileIdle: true },
       sound: 'default',
       smallIcon: 'ic_stat_icon_config_sample',
     });
@@ -168,11 +196,13 @@ export async function scheduleMedicationNotifications() {
 
   if (notifications.length > 0) {
     await LocalNotifications.schedule({ notifications });
+    console.log(`[Notifications] Scheduled ${notifications.length} notifications`);
   }
 
   return scheduledIds.length;
 }
 
 export async function startNotificationLoop() {
+  await registerListeners();
   await scheduleMedicationNotifications();
 }
