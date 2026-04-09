@@ -55,7 +55,7 @@ const AppRoutes = () => {
         <Route path="/auth" element={isLoggedIn ? <Navigate to="/" replace /> : <AuthPage onSkip={() => setGuestMode(true)} />} />
         <Route path="/" element={<ProtectedRoute guestMode={guestMode}><HomePage /></ProtectedRoute>} />
         <Route path="/medications" element={<ProtectedRoute guestMode={guestMode}><MedicationsPage /></ProtectedRoute>} />
-        <Route path="/add-medication" element={<ProtectedRoute guestMode={guestMode}><AddMedicationPage /></ProtectedRoute>} />
+        <Route path="/medications/add" element={<ProtectedRoute guestMode={guestMode}><AddMedicationPage /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute guestMode={guestMode}><HistoryPage /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute guestMode={guestMode}><SettingsPage /></ProtectedRoute>} />
         <Route path="/blood-pressure" element={<ProtectedRoute guestMode={guestMode}><BloodPressurePage /></ProtectedRoute>} />
