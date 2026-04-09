@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Heart, Save } from "lucide-react";
+import { Heart, Save, Pencil } from "lucide-react";
 import { store } from "@/lib/store";
 import { format } from "date-fns";
 import PageHeader from "@/components/PageHeader";
@@ -14,6 +14,7 @@ const BloodPressurePage = () => {
   const [diastolic, setDiastolic] = useState("");
   const [heartRate, setHeartRate] = useState("");
   const [period, setPeriod] = useState<"Morning" | "Evening">("Morning");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const latestReading = readings[0];
   const last7 = readings.slice(0, 7);
@@ -29,15 +30,33 @@ const BloodPressurePage = () => {
 
   const periodLabels: Record<string, string> = { Morning: t.morning, Evening: t.evening };
 
+  const openEdit = (r: BloodPressureReading) => {
+    setEditingId(r.id);
+    setSystolic(String(r.systolic));
+    setDiastolic(String(r.diastolic));
+    setHeartRate(String(r.heartRate));
+    setPeriod(r.period);
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handleSave = async () => {
     if (!systolic || !diastolic || !heartRate) return;
     const reading: BloodPressureReading = {
-      id: crypto.randomUUID(),
+      id: editingId || crypto.randomUUID(),
       systolic: Number(systolic), diastolic: Number(diastolic), heartRate: Number(heartRate),
-      period, date: format(new Date(), "yyyy-MM-dd"), time: format(new Date(), "HH:mm"),
+      period,
+      date: editingId ? (readings.find(r => r.id === editingId)?.date || format(new Date(), "yyyy-MM-dd")) : format(new Date(), "yyyy-MM-dd"),
+      time: editingId ? (readings.find(r => r.id === editingId)?.time || format(new Date(), "HH:mm")) : format(new Date(), "HH:mm"),
     };
     await store.saveReading(reading);
     setReadings(store.getReadings());
+    setSystolic(""); setDiastolic(""); setHeartRate("");
+    setEditingId(null);
+  };
+
+  const handleCancel = () => {
+    setEditingId(null);
     setSystolic(""); setDiastolic(""); setHeartRate("");
   };
 
@@ -94,7 +113,7 @@ const BloodPressurePage = () => {
               <Heart className="w-5 h-5 text-info-foreground" fill="currentColor" />
             </div>
             <div>
-              <h2 className="font-bold text-foreground text-lg">{t.recordNewReading}</h2>
+              <h2 className="font-bold text-foreground text-lg">{editingId ? t.editReading : t.recordNewReading}</h2>
               <p className="text-sm text-muted-foreground">{t.enterBP}</p>
             </div>
           </div>
@@ -143,10 +162,18 @@ const BloodPressurePage = () => {
             />
           </div>
 
-          <button onClick={handleSave} disabled={!systolic || !diastolic || !heartRate}
-            className="w-full py-2.5 sm:py-3 rounded-2xl bg-info text-info-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base">
-            <Save className="w-5 h-5" /> {t.saveReading}
-          </button>
+          <div className="flex gap-3">
+            <button onClick={handleSave} disabled={!systolic || !diastolic || !heartRate}
+              className="flex-1 py-2.5 sm:py-3 rounded-2xl bg-info text-info-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base">
+              <Save className="w-5 h-5" /> {editingId ? t.save : t.saveReading}
+            </button>
+            {editingId && (
+              <button onClick={handleCancel}
+                className="py-2.5 sm:py-3 px-6 rounded-2xl bg-muted text-muted-foreground font-semibold text-sm sm:text-base">
+                {t.cancel}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="bg-primary rounded-2xl p-5 print-hide">
@@ -177,7 +204,12 @@ const BloodPressurePage = () => {
                     <p className="font-bold text-foreground text-lg">{r.systolic}<span className="text-muted-foreground font-normal">/{r.diastolic}</span></p>
                     <p className="text-sm text-heart">♥ {r.heartRate} bpm</p>
                   </div>
-                  <button onClick={() => handleDelete(r.id)} className="text-destructive/60 hover:text-destructive p-1 ms-2">🗑️</button>
+                  <div className="flex flex-col gap-1 ms-2">
+                    <button onClick={() => openEdit(r)} className="p-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => handleDelete(r.id)} className="text-destructive/60 hover:text-destructive p-1">🗑️</button>
+                  </div>
                 </div>
               ))}
             </div>
