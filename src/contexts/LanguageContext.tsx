@@ -172,6 +172,8 @@ const translations = {
     dailySummary: "Daily Summary",
     dailySummaryDesc: "Get a morning notification with all medications for the day",
     dailySummaryTime: "Summary Time",
+    startDate: "Start Date",
+    startDateDesc: "When does the first dose start?",
   },
   ar: {
     appName: "+دواء",
