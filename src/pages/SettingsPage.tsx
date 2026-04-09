@@ -183,7 +183,7 @@ const SettingsPage = () => {
           ))}
         </div>
 
-        {user && (
+        {user ? (
           <button onClick={async () => {
               const msg = isRTL ? "هل تريد تسجيل الخروج؟" : "Do you want to sign out?";
               if (window.confirm(msg)) {
@@ -195,6 +195,15 @@ const SettingsPage = () => {
             <div className="flex items-center gap-3">
               <LogOut className="w-5 h-5 text-destructive" />
               <span className="text-destructive font-medium">{t.signOut}</span>
+            </div>
+            <Chevron className="w-5 h-5 text-muted-foreground" />
+          </button>
+        ) : (
+          <button onClick={() => navigate("/auth", { replace: true })}
+            className="bg-card rounded-2xl border border-primary w-full flex items-center justify-between px-5 py-4 mb-4">
+            <div className="flex items-center gap-3">
+              <LogIn className="w-5 h-5 text-primary" />
+              <span className="text-primary font-bold">{isRTL ? "تسجيل الدخول للمزامنة" : "Sign in to sync"}</span>
             </div>
             <Chevron className="w-5 h-5 text-muted-foreground" />
           </button>
