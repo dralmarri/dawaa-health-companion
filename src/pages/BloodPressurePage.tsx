@@ -92,16 +92,7 @@ const BloodPressurePage = () => {
 
         {readings.length > 0 && (
           <button onClick={() => {
-            const printContent = readings.map(r =>
-              `${r.date} ${r.time} - ${r.systolic}/${r.diastolic} mmHg - ♥ ${r.heartRate} bpm (${r.period})`
-            ).join('\n');
-            const el = document.createElement('textarea');
-            el.value = printContent;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-            alert(isRTL ? 'تم نسخ البيانات - الصق في أي تطبيق للطباعة' : 'Data copied - paste in any app to print');
+            window.print();
           }} className="w-full py-3 rounded-2xl bg-info text-info-foreground font-semibold text-center print-hide">
             🖨️ {t.printReport}
           </button>
