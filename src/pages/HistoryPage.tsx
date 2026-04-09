@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
 import { CalendarDays, Check, X, Clock } from "lucide-react";
 import { store } from "@/lib/store";
-import { generateTodayDoses } from "@/lib/dose-tracker";
+import { generateTodayDoses, markDoseTaken } from "@/lib/dose-tracker";
 import EmptyState from "@/components/EmptyState";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 const HistoryPage = () => {
   const { t, isRTL } = useLanguage();
@@ -138,15 +139,27 @@ const HistoryPage = () => {
                         </p>
                       </div>
                     </div>
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                      rec.status === "taken" ? "bg-summary-taken text-summary-taken-foreground" :
-                      rec.status === "missed" ? "bg-summary-missed text-summary-missed-foreground" :
-                      "bg-secondary text-summary-schedule"
-                    }`}>
-                      {rec.status === "taken" ? (isRTL ? "تم" : "Taken") :
-                       rec.status === "missed" ? (isRTL ? "فائتة" : "Missed") :
-                       (isRTL ? "معلقة" : "Pending")}
-                    </span>
+                    {rec.status === "missed" ? (
+                      <button
+                        onClick={() => {
+                          markDoseTaken(rec.id);
+                          toast.success(isRTL ? "تم تسجيل الجرعة ✓" : "Dose recorded ✓");
+                          window.location.reload();
+                        }}
+                        className="text-xs font-medium px-2 py-1 rounded-full bg-summary-missed text-summary-missed-foreground hover:bg-summary-taken hover:text-summary-taken-foreground transition-colors cursor-pointer"
+                        title={isRTL ? "اضغط لتسجيلها كمأخوذة" : "Click to mark as taken"}
+                      >
+                        {isRTL ? "فائتة" : "Missed"}
+                      </button>
+                    ) : (
+                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                        rec.status === "taken" ? "bg-summary-taken text-summary-taken-foreground" :
+                        "bg-secondary text-summary-schedule"
+                      }`}>
+                        {rec.status === "taken" ? (isRTL ? "تم" : "Taken") :
+                         (isRTL ? "معلقة" : "Pending")}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>

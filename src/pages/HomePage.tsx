@@ -176,13 +176,17 @@ const HomePage = () => {
                           <X className="w-5 h-5 text-summary-missed-foreground" />
                         </button>
                       </div>
+                    ) : dose.status === "missed" ? (
+                      <button
+                        onClick={() => handleTaken(dose.id)}
+                        className="text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0 bg-summary-missed text-summary-missed-foreground hover:bg-summary-taken hover:text-summary-taken-foreground transition-colors"
+                        title={isRTL ? "اضغط لتسجيلها كمأخوذة" : "Click to mark as taken"}
+                      >
+                        {isRTL ? "✗ فائتة" : "✗ Missed"}
+                      </button>
                     ) : (
-                      <span className={`text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0 ${
-                        dose.status === "taken"
-                          ? "bg-summary-taken text-summary-taken-foreground"
-                          : "bg-summary-missed text-summary-missed-foreground"
-                      }`}>
-                        {dose.status === "taken" ? (isRTL ? "✓ تم" : "✓ Taken") : (isRTL ? "✗ فائتة" : "✗ Missed")}
+                      <span className="text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0 bg-summary-taken text-summary-taken-foreground">
+                        {isRTL ? "✓ تم" : "✓ Taken"}
                       </span>
                     )}
                   </div>
