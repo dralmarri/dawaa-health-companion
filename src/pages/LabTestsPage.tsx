@@ -479,7 +479,7 @@ const LabTestsPage = () => {
         <div className="px-4 mt-4">
           <div className="bg-card rounded-2xl border border-border p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-foreground">{t.addLabTest}</h2>
+              <h2 className="text-lg font-bold text-foreground">{editingId ? t.editLabTest : t.addLabTest}</h2>
               <button onClick={resetForm}>
                 <X className="w-5 h-5 text-foreground" />
               </button>
