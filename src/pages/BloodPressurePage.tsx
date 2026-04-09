@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Heart, Save, Pencil } from "lucide-react";
 import { store } from "@/lib/store";
 import { format } from "date-fns";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 import PageHeader from "@/components/PageHeader";
 import ChipSelector from "@/components/ChipSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
