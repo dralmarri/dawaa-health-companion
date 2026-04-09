@@ -140,6 +140,9 @@ const AddMedicationPage = () => {
   const [concentration, setConcentration] = useState("");
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [isChronic, setIsChronic] = useState(true);
+  const [durationDays, setDurationDays] = useState(7);
+  const [durationUnit, setDurationUnit] = useState<'days' | 'weeks' | 'months'>('days');
 
   useEffect(() => {
     if (!editingMedication) return;
@@ -154,6 +157,19 @@ const AddMedicationPage = () => {
     setNotes(editingMedication.notes);
     setStock(editingMedication.stock);
     setImageUrl(editingMedication.imageUrl);
+    setIsChronic(editingMedication.isChronic ?? true);
+    if (editingMedication.durationDays) {
+      if (editingMedication.durationDays % 30 === 0) {
+        setDurationUnit('months');
+        setDurationDays(editingMedication.durationDays / 30);
+      } else if (editingMedication.durationDays % 7 === 0) {
+        setDurationUnit('weeks');
+        setDurationDays(editingMedication.durationDays / 7);
+      } else {
+        setDurationUnit('days');
+        setDurationDays(editingMedication.durationDays);
+      }
+    }
   }, [editingMedication]);
 
   const formsMap: Record<string, string> = {
