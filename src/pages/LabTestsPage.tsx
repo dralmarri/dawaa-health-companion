@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { FlaskConical, X, AlertTriangle, CheckCircle2, ArrowDown, ArrowUp, Plus, Trash2, Search, Image, ZoomIn, Printer, Eye, EyeOff } from "lucide-react";
+import { FlaskConical, X, AlertTriangle, CheckCircle2, ArrowDown, ArrowUp, Plus, Trash2, Search, Image, ZoomIn, Printer, Eye, EyeOff, Pencil } from "lucide-react";
 import { store } from "@/lib/store";
 import { format } from "date-fns";
 import PageHeader from "@/components/PageHeader";
@@ -21,6 +21,7 @@ const LabTestsPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [showResults, setShowResults] = useState<string | null>(null);
   const [savedResults, setSavedResults] = useState<Record<string, AnalyzedResult[]>>({});
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -127,19 +128,21 @@ const LabTestsPage = () => {
 
   const handleSave = async () => {
     const hasManualValues = manualEntries.some((entry) => entry.value.trim() !== "");
-    const canSave = Boolean(name.trim() || notes.trim() || attachedImage || hasManualValues);
-    if (!canSave) return;
+    const canSaveNow = Boolean(name.trim() || notes.trim() || attachedImage || hasManualValues);
+    if (!canSaveNow) return;
 
-    const testId = crypto.randomUUID();
+    const testId = editingId || crypto.randomUUID();
     const allResults = getManualResults();
     const generatedName = name.trim() || (isRTL ? `تحليل ${format(new Date(), "yyyy/MM/dd")}` : `Lab Test ${format(new Date(), "yyyy/MM/dd")}`);
+
+    const existingTest = editingId ? tests.find(t2 => t2.id === editingId) : null;
 
     const test: LabTest = {
       id: testId,
       name: generatedName,
       notes: notes.trim(),
-      fileUrl: attachedImage || undefined,
-      date: new Date().toISOString(),
+      fileUrl: attachedImage || existingTest?.fileUrl || undefined,
+      date: existingTest?.date || new Date().toISOString(),
     };
 
     try {
@@ -184,6 +187,29 @@ const LabTestsPage = () => {
     setShowTestPicker(false);
     setAttachedImage(null);
     setAttachedImageName("");
+    setEditingId(null);
+  };
+
+  const openEdit = (test: LabTest) => {
+    setEditingId(test.id);
+    setName(test.name);
+    setNotes(test.notes);
+    setAttachedImage(test.fileUrl || null);
+    setAttachedImageName("");
+    // Load existing results into manual entries
+    const allResults = JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}");
+    const testResults = allResults[test.id] as AnalyzedResult[] | undefined;
+    if (testResults && testResults.length > 0) {
+      setManualEntries(testResults.map(r => ({
+        id: crypto.randomUUID(),
+        testName: r.testName,
+        value: String(r.value),
+        isCustom: false,
+      })));
+    } else {
+      setManualEntries([]);
+    }
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -377,9 +403,14 @@ const LabTestsPage = () => {
                       </p>
                       {test.notes && <p className="text-sm text-muted-foreground mt-1">📝 {test.notes}</p>}
                     </div>
-                    <button onClick={() => handleDelete(test.id)} className="text-destructive/60 hover:text-destructive p-1">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => openEdit(test)} className="p-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => handleDelete(test.id)} className="text-destructive/60 hover:text-destructive p-1">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="flex gap-2 mt-3 flex-wrap">
@@ -449,7 +480,7 @@ const LabTestsPage = () => {
         <div className="px-4 mt-4">
           <div className="bg-card rounded-2xl border border-border p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-foreground">{t.addLabTest}</h2>
+              <h2 className="text-lg font-bold text-foreground">{editingId ? t.editLabTest : t.addLabTest}</h2>
               <button onClick={resetForm}>
                 <X className="w-5 h-5 text-foreground" />
               </button>

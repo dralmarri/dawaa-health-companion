@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarDays, X } from "lucide-react";
+import { CalendarDays, X, Pencil } from "lucide-react";
 import { store } from "@/lib/store";
 import { format } from "date-fns";
 import PageHeader from "@/components/PageHeader";
@@ -13,6 +13,7 @@ const AppointmentsPage = () => {
   const [appointments, setAppointments] = useState(store.getAppointments());
   const [showForm, setShowForm] = useState(false);
   const [tab, setTab] = useState<"all" | "upcoming" | "completed">("all");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const specialtyMap: Record<string, string> = {
     "General Practitioner": t.generalPractitioner, "Dentist": t.dentist,
@@ -45,14 +46,37 @@ const AppointmentsPage = () => {
     return true;
   });
 
+  const openEdit = (apt: Appointment) => {
+    setEditingId(apt.id);
+    setSpecialty(apt.specialty);
+    setDate(apt.date);
+    setTime(apt.time);
+    setLocation(apt.location);
+    setReminder(apt.reminderBefore);
+    setNotes(apt.notes);
+    setShowForm(true);
+  };
+
+  const openAdd = () => {
+    setEditingId(null);
+    setSpecialty("General Practitioner");
+    setDate(format(new Date(), "yyyy-MM-dd"));
+    setTime("09:00");
+    setLocation("");
+    setReminder("30 minutes");
+    setNotes("");
+    setShowForm(true);
+  };
+
   const handleSave = () => {
     const apt: Appointment = {
-      id: crypto.randomUUID(), specialty, date, time, location,
-      reminderBefore: reminder, notes, completed: false,
+      id: editingId || crypto.randomUUID(), specialty, date, time, location,
+      reminderBefore: reminder, notes, completed: editingId ? (appointments.find(a => a.id === editingId)?.completed || false) : false,
     };
     store.saveAppointment(apt);
     setAppointments(store.getAppointments());
     setShowForm(false);
+    setEditingId(null);
   };
 
   const handleDelete = (id: string) => {
@@ -73,7 +97,7 @@ const AppointmentsPage = () => {
 
   return (
     <div className="pb-28">
-      <PageHeader title={t.appointments} showBack onAdd={() => setShowForm(true)} />
+      <PageHeader title={t.appointments} showBack onAdd={openAdd} />
 
       <div className="px-4 flex gap-2 mb-4">
         {(["all", "upcoming", "completed"] as const).map((tKey) => (
@@ -88,7 +112,7 @@ const AppointmentsPage = () => {
 
       {filtered.length === 0 && !showForm ? (
         <EmptyState icon={<CalendarDays className="w-16 h-16" />} title={t.noAppointments} subtitle={t.addFirstAppointment}
-          actionLabel={t.addAppointment} onAction={() => setShowForm(true)} />
+          actionLabel={t.addAppointment} onAction={openAdd} />
       ) : (
         <div className="px-4 space-y-3">
           {filtered.map((apt) => (
@@ -100,6 +124,10 @@ const AppointmentsPage = () => {
                   {apt.location && <p className="text-sm text-muted-foreground">📍 {apt.location}</p>}
                 </div>
                 <div className="flex gap-2">
+                  <button onClick={() => openEdit(apt)}
+                    className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20">
+                    <Pencil className="w-4 h-4" />
+                  </button>
                   <button onClick={() => toggleComplete(apt.id)}
                     className={`text-xs px-2 py-1 rounded-full ${apt.completed ? "bg-summary-taken text-summary-taken-foreground" : "bg-accent text-accent-foreground"}`}>
                     {apt.completed ? `✓ ${t.done}` : t.markDone}
@@ -116,8 +144,8 @@ const AppointmentsPage = () => {
         <div className="fixed inset-0 bg-foreground/50 z-[60] flex items-end">
           <div className="bg-card w-full max-h-[90vh] rounded-t-3xl overflow-y-auto p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-foreground">{t.addAppointment}</h2>
-              <button onClick={() => setShowForm(false)}><X className="w-6 h-6 text-foreground" /></button>
+              <h2 className="text-xl font-bold text-foreground">{editingId ? t.editAppointment : t.addAppointment}</h2>
+              <button onClick={() => { setShowForm(false); setEditingId(null); }}><X className="w-6 h-6 text-foreground" /></button>
             </div>
             <div className="space-y-4">
               <div>
