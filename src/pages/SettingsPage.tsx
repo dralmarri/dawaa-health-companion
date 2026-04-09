@@ -12,6 +12,7 @@ import type { AppSettings } from "@/types";
 const SettingsPage = () => {
   const navigate = useNavigate();
   const { t, lang, setLang, isRTL } = useLanguage();
+  const { logOut, user } = useAuth();
   const [settings, setSettings] = useState<AppSettings>(store.getSettings());
 
   const update = async (partial: Partial<AppSettings>) => {
