@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Heart, Mail, Lock, Eye, EyeOff, UserX } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, UserX } from "lucide-react";
+import appIcon from "@/assets/app-icon.png";
 
 type Mode = "login" | "register" | "reset";
 
