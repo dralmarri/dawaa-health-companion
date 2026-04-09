@@ -194,6 +194,8 @@ const AddMedicationPage = () => {
 
   const stepLabels = [t.basicInfo, t.frequency, t.stock, t.confirm];
 
+  const isNonDaily = ["Every week", "Every 2 weeks", "Every month"].includes(frequency);
+
   const handleSave = async () => {
     const med: Medication = {
       id: editingMedication?.id || crypto.randomUUID(),
@@ -203,6 +205,7 @@ const AddMedicationPage = () => {
       concentration: concentration || undefined,
       frequency,
       times,
+      startDate: isNonDaily ? startDate : undefined,
       mealRelation,
       notes,
       stock,
