@@ -136,6 +136,7 @@ const AddMedicationPage = () => {
   const [mealRelation, setMealRelation] = useState<Medication["mealRelation"]>("No preference");
   const [notes, setNotes] = useState("");
   const [stock, setStock] = useState(30);
+  const [concentration, setConcentration] = useState("");
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
 
   useEffect(() => {
@@ -143,6 +144,7 @@ const AddMedicationPage = () => {
     setName(editingMedication.name);
     setForm(editingMedication.form);
     setDosage(editingMedication.dosage);
+    setConcentration(editingMedication.concentration || "");
     setFrequency(editingMedication.frequency);
     setTimes(editingMedication.times);
     setMealRelation(editingMedication.mealRelation);
@@ -195,6 +197,7 @@ const AddMedicationPage = () => {
       name,
       form,
       dosage,
+      concentration: concentration || undefined,
       frequency,
       times,
       mealRelation,
