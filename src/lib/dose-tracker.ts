@@ -70,9 +70,10 @@ export function generateTodayDoses(): DoseRecord[] {
 /**
  * Mark a dose as taken
  */
-export function markDoseTaken(recordId: string) {
+export function markDoseTaken(recordId: string): { lowStockMed?: { name: string; stock: number; percent: number } } {
   const records = store.getDoseRecords();
   const record = records.find(r => r.id === recordId);
+  let lowStockMed: { name: string; stock: number; percent: number } | undefined;
   if (record) {
     record.status = 'taken';
     record.takenAt = format(new Date(), 'HH:mm');
@@ -83,8 +84,16 @@ export function markDoseTaken(recordId: string) {
     if (med && med.stock > 0) {
       med.stock -= 1;
       store.saveMedication(med);
+
+      // Check low stock (20% of initial)
+      const initial = med.initialStock || med.stock + 1;
+      const percent = Math.round((med.stock / initial) * 100);
+      if (percent <= 20) {
+        lowStockMed = { name: med.name, stock: med.stock, percent };
+      }
     }
   }
+  return { lowStockMed };
 }
 
 /**
