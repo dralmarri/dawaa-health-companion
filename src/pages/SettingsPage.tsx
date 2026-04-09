@@ -183,25 +183,22 @@ const SettingsPage = () => {
           ))}
         </div>
 
-        <button onClick={() => {
-            const msg = isRTL
-              ? "هل أنت متأكد؟ سيتم حذف جميع بياناتك نهائياً (الأدوية، القراءات، المواعيد، التحاليل)."
-              : "Are you sure? All your data will be permanently deleted (medications, readings, appointments, lab tests).";
-            if (window.confirm(msg)) {
-              Object.keys(localStorage).forEach(key => {
-                if (key.startsWith("dawaa_")) localStorage.removeItem(key);
-              });
-              toast.success(isRTL ? "تم حذف جميع البيانات" : "All data deleted");
-              window.location.href = "/";
-            }
-          }}
-          className="bg-card rounded-2xl border border-border w-full flex items-center justify-between px-5 py-4 mb-4">
-          <div className="flex items-center gap-3">
-            <Trash2 className="w-5 h-5 text-destructive" />
-            <span className="text-destructive font-medium">{t.deleteAccount}</span>
-          </div>
-          <Chevron className="w-5 h-5 text-muted-foreground" />
-        </button>
+        {user && (
+          <button onClick={async () => {
+              const msg = isRTL ? "هل تريد تسجيل الخروج؟" : "Do you want to sign out?";
+              if (window.confirm(msg)) {
+                await logOut();
+                navigate("/auth", { replace: true });
+              }
+            }}
+            className="bg-card rounded-2xl border border-border w-full flex items-center justify-between px-5 py-4 mb-4">
+            <div className="flex items-center gap-3">
+              <LogOut className="w-5 h-5 text-destructive" />
+              <span className="text-destructive font-medium">{t.signOut}</span>
+            </div>
+            <Chevron className="w-5 h-5 text-muted-foreground" />
+          </button>
+        )}
       </div>
     </div>
   );
