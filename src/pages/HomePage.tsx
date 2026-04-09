@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Pill, Heart, CalendarDays, FlaskConical, Plus, Check, X, AlertTriangle } from "lucide-react";
 import { store } from "@/lib/store";
@@ -193,14 +193,60 @@ const HomePage = () => {
         </div>
       </div>
 
+      <FloatingAddButton navigate={navigate} isRTL={isRTL} t={t} />
+    </div>
+  );
+};
+
+const FloatingAddButton = ({ navigate, isRTL, t }: { navigate: any; isRTL: boolean; t: any }) => {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const items = [
+    { label: t.addMedication, icon: Pill, path: "/medications/add", color: "bg-primary" },
+    { label: t.bloodPressure, icon: Heart, path: "/blood-pressure", color: "bg-heart" },
+    { label: t.appointments, icon: CalendarDays, path: "/appointments", color: "bg-warning" },
+    { label: t.labTests, icon: FlaskConical, path: "/lab-tests", color: "bg-primary" },
+  ];
+
+  return (
+    <div ref={menuRef} className="fixed bottom-20 ltr:right-4 rtl:left-4 z-40">
+      {open && (
+        <div className="absolute bottom-16 ltr:right-0 rtl:left-0 flex flex-col gap-3 mb-2 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          {items.map((item) => (
+            <button
+              key={item.path}
+              onClick={() => { setOpen(false); navigate(item.path); }}
+              className="flex items-center gap-3 ltr:flex-row rtl:flex-row-reverse"
+            >
+              <span className="text-sm font-semibold text-foreground bg-card border border-border rounded-xl px-3 py-2 shadow-md whitespace-nowrap">
+                {item.label}
+              </span>
+              <span className={`w-11 h-11 rounded-full ${item.color} text-white flex items-center justify-center shadow-lg`}>
+                <item.icon className="w-5 h-5" />
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
       <button
-        onClick={() => navigate("/medications/add")}
-        className="fixed bottom-20 ltr:right-4 rtl:left-4 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center z-40"
+        onClick={() => setOpen(!open)}
+        className={`w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center transition-transform duration-200 ${open ? "rotate-45" : ""}`}
       >
         <Plus className="w-7 h-7" />
       </button>
     </div>
   );
+};
 };
 
 export default HomePage;
