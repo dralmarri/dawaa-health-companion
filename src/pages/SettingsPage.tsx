@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarDays, FlaskConical, FileText, Shield, Mail, Info, Trash2, ChevronRight, ChevronLeft } from "lucide-react";
+import { Share2, FileText, Shield, Mail, Info, Trash2, ChevronRight, ChevronLeft } from "lucide-react";
 import { store } from "@/lib/store";
 import ChipSelector from "@/components/ChipSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -36,9 +36,22 @@ const SettingsPage = () => {
 
   const Chevron = isRTL ? ChevronLeft : ChevronRight;
 
+  const handleShareApp = async () => {
+    const shareData = {
+      title: "dawaa+",
+      text: isRTL ? "جرب تطبيق دواء+ لإدارة أدويتك وصحتك" : "Try dawaa+ app to manage your medications and health",
+      url: "https://dawaa-plus-buddy.lovable.app",
+    };
+    if (navigator.share) {
+      try { await navigator.share(shareData); } catch {}
+    } else {
+      await navigator.clipboard.writeText(shareData.url);
+      toast.success(isRTL ? "تم نسخ الرابط" : "Link copied!");
+    }
+  };
+
   const menuItems = [
-    { icon: FlaskConical, label: t.labTests, path: "/lab-tests" },
-    { icon: CalendarDays, label: t.appointments, path: "/appointments" },
+    { icon: Share2, label: t.shareApp, action: handleShareApp },
   ];
 
   const aboutItems = [
@@ -142,7 +155,7 @@ const SettingsPage = () => {
         {/* Menu Items */}
         <div className="bg-card rounded-2xl border border-border divide-y divide-border">
           {menuItems.map((item) => (
-            <button key={item.label} onClick={() => navigate(item.path)}
+            <button key={item.label} onClick={() => item.action ? item.action() : null}
               className="w-full flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-3">
                 <item.icon className="w-5 h-5 text-primary" />
