@@ -93,24 +93,69 @@ const BloodPressurePage = () => {
         {readings.length > 0 && (
           <button onClick={() => {
             const header = isRTL ? "تقرير ضغط الدم" : "Blood Pressure Report";
-            const date = format(new Date(), "yyyy-MM-dd");
-            const lines = readings.map(r =>
-              `${r.date} ${r.time} | ${r.systolic}/${r.diastolic} mmHg | ♥ ${r.heartRate} bpm | ${r.period}`
-            );
-            const text = `${header}\n${"─".repeat(40)}\n${lines.join("\n")}\n${"─".repeat(40)}\n${date}`;
-            
-            // Try native share (works on iOS/Android), fallback to print
-            if (navigator.share) {
-              navigator.share({ title: header, text }).catch(() => {});
-            } else {
-              // Web fallback: open printable window
-              const win = window.open("", "_blank");
-              if (win) {
-                win.document.write(`<html dir="${isRTL ? 'rtl' : 'ltr'}"><head><title>${header}</title><style>body{font-family:system-ui;padding:2rem;direction:${isRTL ? 'rtl' : 'ltr'}}table{width:100%;border-collapse:collapse;margin-top:1rem}th,td{border:1px solid #ccc;padding:8px;text-align:${isRTL ? 'right' : 'left'}}th{background:#f5f5f5}</style></head><body><h1>${header}</h1><table><tr><th>${isRTL ? 'التاريخ' : 'Date'}</th><th>${isRTL ? 'الوقت' : 'Time'}</th><th>${isRTL ? 'الانقباضي' : 'Systolic'}</th><th>${isRTL ? 'الانبساطي' : 'Diastolic'}</th><th>${isRTL ? 'النبض' : 'HR'}</th><th>${isRTL ? 'الفترة' : 'Period'}</th></tr>${readings.map(r => `<tr><td>${r.date}</td><td>${r.time}</td><td>${r.systolic}</td><td>${r.diastolic}</td><td>${r.heartRate}</td><td>${r.period}</td></tr>`).join("")}</table></body></html>`);
-                win.document.close();
-                win.print();
-              }
-            }
+            const printWindow = window.open("", "_blank", "noopener,noreferrer");
+            if (!printWindow) return;
+
+            const rows = readings.map((r) => `
+              <tr>
+                <td>${r.date}</td>
+                <td>${r.time}</td>
+                <td>${r.systolic}</td>
+                <td>${r.diastolic}</td>
+                <td>${r.heartRate}</td>
+                <td>${r.period}</td>
+              </tr>
+            `).join("");
+
+            printWindow.document.write(`
+              <!doctype html>
+              <html lang="${isRTL ? "ar" : "en"}" dir="${isRTL ? "rtl" : "ltr"}">
+                <head>
+                  <meta charset="utf-8" />
+                  <meta name="viewport" content="width=device-width, initial-scale=1" />
+                  <title>${header}</title>
+                  <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; padding: 32px 20px; color: #111827; background: #ffffff; }
+                    .wrap { max-width: 900px; margin: 0 auto; }
+                    h1 { margin: 0 0 8px; font-size: 28px; }
+                    p { margin: 0 0 24px; color: #6b7280; }
+                    table { width: 100%; border-collapse: collapse; }
+                    th, td { border: 1px solid #d1d5db; padding: 10px 12px; text-align: ${isRTL ? "right" : "left"}; }
+                    th { background: #f3f4f6; }
+                    @media print {
+                      body { padding: 0; }
+                    }
+                  </style>
+                </head>
+                <body>
+                  <div class="wrap">
+                    <h1>${header}</h1>
+                    <p>${isRTL ? "سجل القراءات الطبية لضغط الدم" : "Medical blood pressure readings report"}</p>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>${isRTL ? "التاريخ" : "Date"}</th>
+                          <th>${isRTL ? "الوقت" : "Time"}</th>
+                          <th>${isRTL ? "الانقباضي" : "Systolic"}</th>
+                          <th>${isRTL ? "الانبساطي" : "Diastolic"}</th>
+                          <th>${isRTL ? "النبض" : "Heart rate"}</th>
+                          <th>${isRTL ? "الفترة" : "Period"}</th>
+                        </tr>
+                      </thead>
+                      <tbody>${rows}</tbody>
+                    </table>
+                  </div>
+                  <script>
+                    window.onload = function () {
+                      setTimeout(function () {
+                        window.print();
+                      }, 350);
+                    };
+                  <\/script>
+                </body>
+              </html>
+            `);
+            printWindow.document.close();
           }} className="w-full py-3 rounded-2xl bg-info text-info-foreground font-semibold text-center print-hide">
             🖨️ {t.printReport}
           </button>
