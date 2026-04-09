@@ -1,6 +1,42 @@
 import { store } from './store';
-import { format } from 'date-fns';
+import { format, differenceInDays, differenceInWeeks, differenceInMonths, parseISO } from 'date-fns';
 import type { DoseRecord } from '@/types';
+
+/**
+ * Check if a medication is scheduled for today based on its frequency and startDate.
+ */
+function isMedScheduledToday(frequency: string, startDate?: string): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Daily frequencies always apply
+  if (['Once daily', 'Twice daily', 'Three times daily', 'Four times daily', 'Every X hours'].includes(frequency)) {
+    return true;
+  }
+
+  if (!startDate) return true; // No start date = assume today
+
+  const start = parseISO(startDate);
+  start.setHours(0, 0, 0, 0);
+
+  // Don't schedule before start date
+  if (today < start) return false;
+
+  const daysDiff = differenceInDays(today, start);
+
+  switch (frequency) {
+    case 'Every week':
+      return daysDiff % 7 === 0;
+    case 'Every 2 weeks':
+      return daysDiff % 14 === 0;
+    case 'Every month': {
+      // Same day of month
+      return today.getDate() === start.getDate() && differenceInMonths(today, start) >= 0;
+    }
+    default:
+      return true;
+  }
+}
 
 /**
  * Generate today's dose records from medications.
@@ -16,8 +52,10 @@ export function generateTodayDoses(): DoseRecord[] {
   let created = false;
 
   medications.forEach(med => {
+    // Skip if not scheduled today
+    if (!isMedScheduledToday(med.frequency, med.startDate)) return;
+
     med.times.forEach(time => {
-      // Check if a record already exists for this med+time+today
       const exists = todayExisting.some(
         r => r.medicationId === med.id && r.scheduledTime === time
       );
