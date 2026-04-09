@@ -411,6 +411,7 @@ const LabTestsPage = () => {
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
+                  </div>
 
                   <div className="flex gap-2 mt-3 flex-wrap">
                     {hasImage && (
