@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pill, Heart, CalendarDays, FlaskConical, Plus, Check, X, AlertTriangle } from "lucide-react";
+import { Pill, Heart, CalendarDays, FlaskConical, Plus, Check, X, AlertTriangle, Clock } from "lucide-react";
 import { store } from "@/lib/store";
 import { generateTodayDoses, markDoseTaken, markDoseMissed } from "@/lib/dose-tracker";
 import { format } from "date-fns";
@@ -56,13 +56,26 @@ const HomePage = () => {
     { label: t.labTests, icon: FlaskConical, path: "/lab-tests", color: "text-primary" },
   ];
 
-  // Sort doses: pending first, then by time
-  const sortedDoses = [...todayDoses].sort((a, b) => {
-    const statusOrder = { pending: 0, missed: 1, taken: 2 };
-    const statusDiff = statusOrder[a.status] - statusOrder[b.status];
-    if (statusDiff !== 0) return statusDiff;
-    return a.scheduledTime.localeCompare(b.scheduledTime);
-  });
+  // Group doses by scheduled time
+  const groupedDoses = useMemo(() => {
+    const sorted = [...todayDoses].sort((a, b) => {
+      const statusOrder = { pending: 0, missed: 1, taken: 2 };
+      const statusDiff = statusOrder[a.status] - statusOrder[b.status];
+      if (statusDiff !== 0) return statusDiff;
+      return a.scheduledTime.localeCompare(b.scheduledTime);
+    });
+
+    const groups: { time: string; doses: DoseRecord[] }[] = [];
+    sorted.forEach(dose => {
+      const last = groups[groups.length - 1];
+      if (last && last.time === dose.scheduledTime) {
+        last.doses.push(dose);
+      } else {
+        groups.push({ time: dose.scheduledTime, doses: [dose] });
+      }
+    });
+    return groups;
+  }, [todayDoses]);
 
   return (
     <div className="pb-28 px-4">
@@ -130,71 +143,86 @@ const HomePage = () => {
         ))}
       </div>
 
-      {/* Today's Doses */}
+      {/* Today's Doses - Grouped by time */}
       <div className="mb-6">
         <h2 className="text-lg font-bold text-foreground mb-3">{t.upcomingDoses}</h2>
-        <div className="bg-card rounded-2xl border border-border">
-          {sortedDoses.length === 0 ? (
+        {groupedDoses.length === 0 ? (
+          <div className="bg-card rounded-2xl border border-border">
             <p className="text-center text-muted-foreground p-6">{t.noDosesToday}</p>
-          ) : (
-            <div className="divide-y divide-border">
-              {sortedDoses.map((dose) => {
-                const med = store.getMedications().find(m => m.id === dose.medicationId);
-                return (
-                  <div key={dose.id} className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      {med?.imageUrl ? (
-                        <img src={med.imageUrl} alt={dose.medicationName} className="w-10 h-10 rounded-lg object-cover border border-border flex-shrink-0" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <Pill className="w-5 h-5 text-primary" />
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {groupedDoses.map(({ time, doses }) => (
+              <div key={time} className="bg-card rounded-2xl border border-border overflow-hidden">
+                {/* Time header */}
+                <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+                  <Clock className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-bold text-primary">{time}</span>
+                  {doses.length > 1 && (
+                    <span className="text-xs text-muted-foreground">
+                      ({doses.length} {isRTL ? "أدوية" : "meds"})
+                    </span>
+                  )}
+                </div>
+                <div className="divide-y divide-border">
+                  {doses.map((dose) => {
+                    const med = store.getMedications().find(m => m.id === dose.medicationId);
+                    return (
+                      <div key={dose.id} className="flex items-center justify-between p-4 pt-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {med?.imageUrl ? (
+                            <img src={med.imageUrl} alt={dose.medicationName} className="w-10 h-10 rounded-lg object-cover border border-border flex-shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <Pill className="w-5 h-5 text-primary" />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-semibold text-foreground truncate">{dose.medicationName}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {med && `${med.dosage} ${med.form}`}
+                            </p>
+                          </div>
                         </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="font-semibold text-foreground truncate">{dose.medicationName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {dose.scheduledTime}
-                          {med && ` · ${med.dosage} ${med.form}`}
-                        </p>
-                      </div>
-                    </div>
 
-                    {dose.status === "pending" ? (
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <button
-                          onClick={() => handleTaken(dose.id)}
-                          className="w-9 h-9 rounded-full bg-summary-taken flex items-center justify-center hover:opacity-80 transition-opacity"
-                          aria-label={isRTL ? "تم أخذها" : "Mark taken"}
-                        >
-                          <Check className="w-5 h-5 text-summary-taken-foreground" />
-                        </button>
-                        <button
-                          onClick={() => handleMissed(dose.id)}
-                          className="w-9 h-9 rounded-full bg-summary-missed flex items-center justify-center hover:opacity-80 transition-opacity"
-                          aria-label={isRTL ? "فائتة" : "Mark missed"}
-                        >
-                          <X className="w-5 h-5 text-summary-missed-foreground" />
-                        </button>
+                        {dose.status === "pending" ? (
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button
+                              onClick={() => handleTaken(dose.id)}
+                              className="w-9 h-9 rounded-full bg-summary-taken flex items-center justify-center hover:opacity-80 transition-opacity"
+                              aria-label={isRTL ? "تم أخذها" : "Mark taken"}
+                            >
+                              <Check className="w-5 h-5 text-summary-taken-foreground" />
+                            </button>
+                            <button
+                              onClick={() => handleMissed(dose.id)}
+                              className="w-9 h-9 rounded-full bg-summary-missed flex items-center justify-center hover:opacity-80 transition-opacity"
+                              aria-label={isRTL ? "فائتة" : "Mark missed"}
+                            >
+                              <X className="w-5 h-5 text-summary-missed-foreground" />
+                            </button>
+                          </div>
+                        ) : dose.status === "missed" ? (
+                          <button
+                            onClick={() => handleTaken(dose.id)}
+                            className="text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0 bg-summary-missed text-summary-missed-foreground hover:bg-summary-taken hover:text-summary-taken-foreground transition-colors"
+                            title={isRTL ? "اضغط لتسجيلها كمأخوذة" : "Click to mark as taken"}
+                          >
+                            {isRTL ? "✗ فائتة" : "✗ Missed"}
+                          </button>
+                        ) : (
+                          <span className="text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0 bg-summary-taken text-summary-taken-foreground">
+                            {isRTL ? "✓ تم" : "✓ Taken"}
+                          </span>
+                        )}
                       </div>
-                    ) : dose.status === "missed" ? (
-                      <button
-                        onClick={() => handleTaken(dose.id)}
-                        className="text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0 bg-summary-missed text-summary-missed-foreground hover:bg-summary-taken hover:text-summary-taken-foreground transition-colors"
-                        title={isRTL ? "اضغط لتسجيلها كمأخوذة" : "Click to mark as taken"}
-                      >
-                        {isRTL ? "✗ فائتة" : "✗ Missed"}
-                      </button>
-                    ) : (
-                      <span className="text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0 bg-summary-taken text-summary-taken-foreground">
-                        {isRTL ? "✓ تم" : "✓ Taken"}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <FloatingAddButton navigate={navigate} isRTL={isRTL} t={t} />
