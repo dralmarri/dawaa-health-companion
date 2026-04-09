@@ -62,7 +62,9 @@ export function generateTodayDoses(): DoseRecord[] {
     }
   });
 
-  return store.getDoseRecords().filter(r => r.date === today);
+  // Filter out dose records for deleted medications
+  const medIds = new Set(medications.map(m => m.id));
+  return store.getDoseRecords().filter(r => r.date === today && medIds.has(r.medicationId));
 }
 
 /**
