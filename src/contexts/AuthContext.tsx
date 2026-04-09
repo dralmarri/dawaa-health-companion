@@ -1,13 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-  type User,
-} from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 interface AuthContextType {
   user: User | null;
@@ -28,84 +21,94 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
-
-    console.log("[AuthProvider] starting auth listener");
-
-    const timeout = window.setTimeout(() => {
-      if (isMounted) {
-        console.warn("[AuthProvider] auth listener timeout -> forcing loading=false");
+    // Set up auth listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
         setLoading(false);
-      }
-    }, 8000);
-
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (u) => {
-        if (!isMounted) return;
-        console.log("[AuthProvider] auth state changed:", u?.uid ?? null);
-        clearTimeout(timeout);
-        setUser(u);
-        setLoading(false);
-      },
-      (err) => {
-        if (!isMounted) return;
-        console.error("[AuthProvider] auth listener error:", err);
-        clearTimeout(timeout);
-        setUser(null);
-        setLoading(false);
-        setError("تعذر التحقق من حالة تسجيل الدخول");
       }
     );
 
-    return () => {
-      isMounted = false;
-      clearTimeout(timeout);
-      unsubscribe();
-    };
+    // Then check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const signUp = async (email: string, password: string) => {
     try {
       setError(null);
-      await createUserWithEmailAndPassword(auth, email, password);
+      const { error: err } = await supabase.auth.signUp({ email, password });
+      if (err) {
+        const msg = getErrorMessage(err.message);
+        setError(msg);
+        throw new Error(msg);
+      }
     } catch (e: any) {
-      const msg = getErrorMessage(e.code);
-      setError(msg);
-      throw new Error(msg);
+      if (!error) {
+        const msg = getErrorMessage(e.message);
+        setError(msg);
+      }
+      throw e;
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
       setError(null);
-      await signInWithEmailAndPassword(auth, email, password);
+      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+      if (err) {
+        const msg = getErrorMessage(err.message);
+        setError(msg);
+        throw new Error(msg);
+      }
     } catch (e: any) {
-      const msg = getErrorMessage(e.code);
-      setError(msg);
-      throw new Error(msg);
+      if (!error) {
+        const msg = getErrorMessage(e.message);
+        setError(msg);
+      }
+      throw e;
     }
   };
 
   const logOut = async () => {
     try {
       setError(null);
-      await signOut(auth);
+      const { error: err } = await supabase.auth.signOut();
+      if (err) {
+        const msg = getErrorMessage(err.message);
+        setError(msg);
+        throw new Error(msg);
+      }
     } catch (e: any) {
-      const msg = getErrorMessage(e.code);
-      setError(msg);
-      throw new Error(msg);
+      if (!error) {
+        const msg = getErrorMessage(e.message);
+        setError(msg);
+      }
+      throw e;
     }
   };
 
   const resetPassword = async (email: string) => {
     try {
       setError(null);
-      await sendPasswordResetEmail(auth, email);
+      const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (err) {
+        const msg = getErrorMessage(err.message);
+        setError(msg);
+        throw new Error(msg);
+      }
     } catch (e: any) {
-      const msg = getErrorMessage(e.code);
-      setError(msg);
-      throw new Error(msg);
+      if (!error) {
+        const msg = getErrorMessage(e.message);
+        setError(msg);
+      }
+      throw e;
     }
   };
 
@@ -126,23 +129,19 @@ export const useAuth = () => {
   return ctx;
 };
 
-function getErrorMessage(code: string): string {
-  switch (code) {
-    case "auth/email-already-in-use":
-      return "البريد الإلكتروني مستخدم بالفعل";
-    case "auth/invalid-email":
-      return "البريد الإلكتروني غير صحيح";
-    case "auth/weak-password":
-      return "كلمة المرور ضعيفة جداً (6 أحرف على الأقل)";
-    case "auth/user-not-found":
-      return "لا يوجد حساب بهذا البريد الإلكتروني";
-    case "auth/wrong-password":
-      return "كلمة المرور غير صحيحة";
-    case "auth/invalid-credential":
-      return "البريد الإلكتروني أو كلمة المرور غير صحيحة";
-    case "auth/too-many-requests":
-      return "تم تجاوز عدد المحاولات، حاول لاحقاً";
-    default:
-      return "حدث خطأ، حاول مرة أخرى";
-  }
+function getErrorMessage(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("already registered") || lower.includes("already in use"))
+    return "البريد الإلكتروني مستخدم بالفعل";
+  if (lower.includes("invalid email"))
+    return "البريد الإلكتروني غير صحيح";
+  if (lower.includes("weak password") || lower.includes("at least"))
+    return "كلمة المرور ضعيفة جداً (6 أحرف على الأقل)";
+  if (lower.includes("invalid login") || lower.includes("invalid credentials"))
+    return "البريد الإلكتروني أو كلمة المرور غير صحيحة";
+  if (lower.includes("rate limit") || lower.includes("too many"))
+    return "تم تجاوز عدد المحاولات، حاول لاحقاً";
+  if (lower.includes("not found"))
+    return "لا يوجد حساب بهذا البريد الإلكتروني";
+  return "حدث خطأ، حاول مرة أخرى";
 }
