@@ -366,6 +366,7 @@ const AddMedicationPage = () => {
               <div className="flex justify-between"><span className="text-muted-foreground">{t.medicationName}</span><span className="font-bold text-foreground flex items-center gap-1">{name} <Check className="w-4 h-4 text-primary" /></span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.form}</span><span className="font-bold text-foreground">{formsMap[form]}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dosage}</span><span className="font-bold text-foreground">{dosage} {formsMap[form]}</span></div>
+              {concentration && <div className="flex justify-between"><span className="text-muted-foreground">{t.concentration}</span><span className="font-bold text-foreground">{concentration} {t.concentrationUnit}</span></div>}
               <div className="flex justify-between"><span className="text-muted-foreground">{t.frequency}</span><span className="font-bold text-foreground">{freqMap[frequency]}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.times}</span><span className="font-bold text-foreground">{times.join(", ")}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.stock}</span><span className="font-bold text-foreground">{stock} {formsMap[form]}</span></div>
