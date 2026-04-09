@@ -68,4 +68,6 @@ export interface AppSettings {
   reminderBefore: string;
   escalationOnMissed: boolean;
   emergencyContact?: EmergencyContact;
+  dailySummary: boolean;
+  dailySummaryTime: string;
 }
