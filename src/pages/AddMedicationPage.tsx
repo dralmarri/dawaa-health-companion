@@ -265,6 +265,19 @@ const AddMedicationPage = () => {
                 <span className="text-sm text-muted-foreground px-3 py-2 bg-accent rounded-lg">{formsMap[form]}</span>
               </div>
             </div>
+            <div>
+              <label className="text-base font-bold text-foreground block mb-2">{t.concentration}</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={concentration}
+                  onChange={(e) => setConcentration(e.target.value)}
+                  placeholder="e.g. 500"
+                  className="w-32 px-4 py-3 rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <span className="text-sm text-muted-foreground px-3 py-2 bg-accent rounded-lg">{t.concentrationUnit}</span>
+              </div>
+            </div>
             <MedicationImageUpload imageUrl={imageUrl} onChange={setImageUrl} />
           </div>
         )}
@@ -361,11 +374,19 @@ const AddMedicationPage = () => {
         )}
       </div>
 
-      <div className="px-4 pb-6 pt-2">
+      <div className="px-4 pb-6 pt-2 flex gap-3">
+        {step > 1 && (
+          <button
+            onClick={() => setStep(step - 1)}
+            className="flex-1 py-4 rounded-2xl border border-border bg-card text-foreground font-bold text-lg"
+          >
+            {t.previous}
+          </button>
+        )}
         <button
           onClick={() => (step < totalSteps ? setStep(step + 1) : handleSave())}
           disabled={!canNext()}
-          className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-lg disabled:opacity-50"
+          className="flex-1 py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-lg disabled:opacity-50"
         >
           {step < totalSteps ? t.next : t.save}
         </button>
