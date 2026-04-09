@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { format } from "date-fns";
 import { ArrowLeft, Check, AlertCircle, CheckCircle2 } from "lucide-react";
 import ChipSelector from "@/components/ChipSelector";
 import MedicationImageUpload from "@/components/MedicationImageUpload";
@@ -138,6 +139,7 @@ const AddMedicationPage = () => {
   const [stock, setStock] = useState(30);
   const [concentration, setConcentration] = useState("");
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+  const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
 
   useEffect(() => {
     if (!editingMedication) return;
@@ -147,6 +149,7 @@ const AddMedicationPage = () => {
     setConcentration(editingMedication.concentration || "");
     setFrequency(editingMedication.frequency);
     setTimes(editingMedication.times);
+    setStartDate(editingMedication.startDate || format(new Date(), "yyyy-MM-dd"));
     setMealRelation(editingMedication.mealRelation);
     setNotes(editingMedication.notes);
     setStock(editingMedication.stock);
@@ -191,6 +194,8 @@ const AddMedicationPage = () => {
 
   const stepLabels = [t.basicInfo, t.frequency, t.stock, t.confirm];
 
+  const isNonDaily = ["Every week", "Every 2 weeks", "Every month"].includes(frequency);
+
   const handleSave = async () => {
     const med: Medication = {
       id: editingMedication?.id || crypto.randomUUID(),
@@ -200,6 +205,7 @@ const AddMedicationPage = () => {
       concentration: concentration || undefined,
       frequency,
       times,
+      startDate: isNonDaily ? startDate : undefined,
       mealRelation,
       notes,
       stock,
@@ -295,6 +301,18 @@ const AddMedicationPage = () => {
                 }}
               />
             </div>
+            {isNonDaily && (
+              <div>
+                <label className="text-base font-bold text-foreground block mb-2">{t.startDate}</label>
+                <p className="text-sm text-muted-foreground mb-2">{t.startDateDesc}</p>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            )}
             <div>
               <label className="text-base font-bold text-foreground block mb-2">{t.times}</label>
               {times.map((tVal, i) => (
@@ -368,6 +386,7 @@ const AddMedicationPage = () => {
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dosage}</span><span className="font-bold text-foreground">{dosage} {formsMap[form]}</span></div>
               {concentration && <div className="flex justify-between"><span className="text-muted-foreground">{t.concentration}</span><span className="font-bold text-foreground">{concentration} {t.concentrationUnit}</span></div>}
               <div className="flex justify-between"><span className="text-muted-foreground">{t.frequency}</span><span className="font-bold text-foreground">{freqMap[frequency]}</span></div>
+              {isNonDaily && <div className="flex justify-between"><span className="text-muted-foreground">{t.startDate}</span><span className="font-bold text-foreground">{startDate}</span></div>}
               <div className="flex justify-between"><span className="text-muted-foreground">{t.times}</span><span className="font-bold text-foreground">{times.join(", ")}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.stock}</span><span className="font-bold text-foreground">{stock} {formsMap[form]}</span></div>
             </div>

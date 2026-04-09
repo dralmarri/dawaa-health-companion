@@ -6,6 +6,7 @@ export interface Medication {
   concentration?: string;
   frequency: string;
   times: string[];
+  startDate?: string;
   mealRelation: 'No preference' | 'Before meal' | 'After meal' | 'With meal';
   notes: string;
   stock: number;
