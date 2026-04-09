@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
@@ -21,7 +22,7 @@ import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children, guestMode }: { children: React.ReactNode; guestMode: boolean }) => {
   const { user, loading } = useAuth();
   if (loading) {
     return (
@@ -30,12 +31,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user && !guestMode) return <Navigate to="/auth" replace />;
   return <>{children}</>;
 };
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
+  const [guestMode, setGuestMode] = useState(false);
+
+  const isLoggedIn = !!user || guestMode;
 
   if (loading) {
     return (
@@ -48,21 +52,21 @@ const AppRoutes = () => {
   return (
     <div className="min-h-[100dvh] bg-background pb-20">
       <Routes>
-        <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage onSkip={() => {}} />} />
-        <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-        <Route path="/medications" element={<ProtectedRoute><MedicationsPage /></ProtectedRoute>} />
-        <Route path="/add-medication" element={<ProtectedRoute><AddMedicationPage /></ProtectedRoute>} />
-        <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-        <Route path="/blood-pressure" element={<ProtectedRoute><BloodPressurePage /></ProtectedRoute>} />
-        <Route path="/appointments" element={<ProtectedRoute><AppointmentsPage /></ProtectedRoute>} />
-        <Route path="/lab-tests" element={<ProtectedRoute><LabTestsPage /></ProtectedRoute>} />
-        <Route path="/emergency-contact" element={<ProtectedRoute><EmergencyContactPage /></ProtectedRoute>} />
+        <Route path="/auth" element={isLoggedIn ? <Navigate to="/" replace /> : <AuthPage onSkip={() => setGuestMode(true)} />} />
+        <Route path="/" element={<ProtectedRoute guestMode={guestMode}><HomePage /></ProtectedRoute>} />
+        <Route path="/medications" element={<ProtectedRoute guestMode={guestMode}><MedicationsPage /></ProtectedRoute>} />
+        <Route path="/add-medication" element={<ProtectedRoute guestMode={guestMode}><AddMedicationPage /></ProtectedRoute>} />
+        <Route path="/history" element={<ProtectedRoute guestMode={guestMode}><HistoryPage /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute guestMode={guestMode}><SettingsPage /></ProtectedRoute>} />
+        <Route path="/blood-pressure" element={<ProtectedRoute guestMode={guestMode}><BloodPressurePage /></ProtectedRoute>} />
+        <Route path="/appointments" element={<ProtectedRoute guestMode={guestMode}><AppointmentsPage /></ProtectedRoute>} />
+        <Route path="/lab-tests" element={<ProtectedRoute guestMode={guestMode}><LabTestsPage /></ProtectedRoute>} />
+        <Route path="/emergency-contact" element={<ProtectedRoute guestMode={guestMode}><EmergencyContactPage /></ProtectedRoute>} />
         <Route path="/terms" element={<TermsOfUsePage />} />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-      {user && <BottomNav />}
+      {isLoggedIn && <BottomNav />}
     </div>
   );
 };
