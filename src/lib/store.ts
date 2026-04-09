@@ -160,13 +160,39 @@ export async function syncFromCloud(uid: string) {
     if (labTests.length) await setCache(KEYS.labTests, labTests.sort((a, b) => b.date.localeCompare(a.date)));
     if (doseRecords.length) await setCache(KEYS.doseRecords, doseRecords);
     if (settings) await setCache(KEYS.settings, settings);
-
-    // Sync lab results
-    const labResults = await cloudStore.getLabResults(uid);
-    if (Object.keys(labResults).length) {
-      localStorage.setItem("dawaa_lab_results", JSON.stringify(labResults));
-    }
   } catch (err) {
     console.error("Cloud sync error:", err);
   }
+}
+
+// ── Migrate local data to cloud ──────────────────────────────────
+export async function migrateLocalToCloud(uid: string): Promise<number> {
+  const MIGRATED_KEY = `dawaa_migrated_${uid}`;
+  if (localStorage.getItem(MIGRATED_KEY)) return 0;
+
+  let count = 0;
+  try {
+    const meds = store.getMedications();
+    const readings = store.getReadings();
+    const appointments = store.getAppointments();
+    const labTests = store.getLabTests();
+    const doseRecords = store.getDoseRecords();
+
+    for (const m of meds) { await cloudStore.saveMedication(uid, m); count++; }
+    for (const r of readings) { await cloudStore.saveReading(uid, r); count++; }
+    for (const a of appointments) { await cloudStore.saveAppointment(uid, a); count++; }
+    for (const t of labTests) { await cloudStore.saveLabTest(uid, t); count++; }
+    for (const d of doseRecords) { await cloudStore.saveDoseRecord(uid, d); count++; }
+
+    const settings = store.getSettings();
+    if (settings.userName) {
+      await cloudStore.saveSettings(uid, settings);
+      count++;
+    }
+
+    localStorage.setItem(MIGRATED_KEY, "true");
+  } catch (err) {
+    console.error("Migration error:", err);
+  }
+  return count;
 }
