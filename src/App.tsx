@@ -41,6 +41,26 @@ const AppRoutes = () => {
   const { user, loading } = useAuth();
   const [guestMode, setGuestMode] = useState(false);
 
+  // Wire up cloud sync when user logs in
+  useEffect(() => {
+    initStore();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      setStoreUid(user.id);
+      // Migrate local data then sync from cloud
+      migrateLocalToCloud(user.id).then((count) => {
+        if (count > 0) {
+          toast.success(`تم ترحيل ${count} عنصر إلى السحابة`);
+        }
+        return syncFromCloud(user.id);
+      });
+    } else {
+      setStoreUid(null);
+    }
+  }, [user]);
+
   const isLoggedIn = !!user || guestMode;
 
   if (loading) {
