@@ -93,71 +93,82 @@ const BloodPressurePage = () => {
         )}
 
         {readings.length > 0 && (
-          <button onClick={() => {
+          <button onClick={async () => {
             const header = isRTL ? "تقرير ضغط الدم" : "Blood Pressure Report";
-            const printWindow = window.open("", "_blank", "noopener,noreferrer");
-            if (!printWindow) return;
+            const tempDiv = document.createElement("div");
+            tempDiv.dir = isRTL ? "rtl" : "ltr";
+            tempDiv.style.position = "fixed";
+            tempDiv.style.left = "-99999px";
+            tempDiv.style.top = "0";
+            tempDiv.style.width = "794px";
+            tempDiv.style.background = "white";
+            tempDiv.style.color = "#111827";
+            tempDiv.style.padding = "32px";
+            tempDiv.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
-            const rows = readings.map((r) => `
-              <tr>
-                <td>${r.date}</td>
-                <td>${r.time}</td>
-                <td>${r.systolic}</td>
-                <td>${r.diastolic}</td>
-                <td>${r.heartRate}</td>
-                <td>${r.period}</td>
-              </tr>
-            `).join("");
+            tempDiv.innerHTML = `
+              <h1 style="margin:0 0 8px;font-size:28px;">${header}</h1>
+              <p style="margin:0 0 24px;color:#6b7280;">${isRTL ? "سجل القراءات الطبية لضغط الدم" : "Medical blood pressure readings report"}</p>
+              <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                <thead>
+                  <tr>
+                    <th style="border:1px solid #d1d5db;background:#f3f4f6;padding:10px;text-align:${isRTL ? "right" : "left"}">${isRTL ? "التاريخ" : "Date"}</th>
+                    <th style="border:1px solid #d1d5db;background:#f3f4f6;padding:10px;text-align:${isRTL ? "right" : "left"}">${isRTL ? "الوقت" : "Time"}</th>
+                    <th style="border:1px solid #d1d5db;background:#f3f4f6;padding:10px;text-align:${isRTL ? "right" : "left"}">${isRTL ? "الانقباضي" : "Systolic"}</th>
+                    <th style="border:1px solid #d1d5db;background:#f3f4f6;padding:10px;text-align:${isRTL ? "right" : "left"}">${isRTL ? "الانبساطي" : "Diastolic"}</th>
+                    <th style="border:1px solid #d1d5db;background:#f3f4f6;padding:10px;text-align:${isRTL ? "right" : "left"}">${isRTL ? "النبض" : "Heart rate"}</th>
+                    <th style="border:1px solid #d1d5db;background:#f3f4f6;padding:10px;text-align:${isRTL ? "right" : "left"}">${isRTL ? "الفترة" : "Period"}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${readings.map((r) => `
+                    <tr>
+                      <td style="border:1px solid #d1d5db;padding:10px;">${r.date}</td>
+                      <td style="border:1px solid #d1d5db;padding:10px;">${r.time}</td>
+                      <td style="border:1px solid #d1d5db;padding:10px;">${r.systolic}</td>
+                      <td style="border:1px solid #d1d5db;padding:10px;">${r.diastolic}</td>
+                      <td style="border:1px solid #d1d5db;padding:10px;">${r.heartRate}</td>
+                      <td style="border:1px solid #d1d5db;padding:10px;">${r.period}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            `;
 
-            printWindow.document.write(`
-              <!doctype html>
-              <html lang="${isRTL ? "ar" : "en"}" dir="${isRTL ? "rtl" : "ltr"}">
-                <head>
-                  <meta charset="utf-8" />
-                  <meta name="viewport" content="width=device-width, initial-scale=1" />
-                  <title>${header}</title>
-                  <style>
-                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; padding: 32px 20px; color: #111827; background: #ffffff; }
-                    .wrap { max-width: 900px; margin: 0 auto; }
-                    h1 { margin: 0 0 8px; font-size: 28px; }
-                    p { margin: 0 0 24px; color: #6b7280; }
-                    table { width: 100%; border-collapse: collapse; }
-                    th, td { border: 1px solid #d1d5db; padding: 10px 12px; text-align: ${isRTL ? "right" : "left"}; }
-                    th { background: #f3f4f6; }
-                    @media print {
-                      body { padding: 0; }
-                    }
-                  </style>
-                </head>
-                <body>
-                  <div class="wrap">
-                    <h1>${header}</h1>
-                    <p>${isRTL ? "سجل القراءات الطبية لضغط الدم" : "Medical blood pressure readings report"}</p>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>${isRTL ? "التاريخ" : "Date"}</th>
-                          <th>${isRTL ? "الوقت" : "Time"}</th>
-                          <th>${isRTL ? "الانقباضي" : "Systolic"}</th>
-                          <th>${isRTL ? "الانبساطي" : "Diastolic"}</th>
-                          <th>${isRTL ? "النبض" : "Heart rate"}</th>
-                          <th>${isRTL ? "الفترة" : "Period"}</th>
-                        </tr>
-                      </thead>
-                      <tbody>${rows}</tbody>
-                    </table>
-                  </div>
-                  <script>
-                    window.onload = function () {
-                      setTimeout(function () {
-                        window.print();
-                      }, 350);
-                    };
-                  <\/script>
-                </body>
-              </html>
-            `);
-            printWindow.document.close();
+            document.body.appendChild(tempDiv);
+
+            try {
+              const canvas = await html2canvas(tempDiv, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: "#ffffff",
+              });
+
+              const pdf = new jsPDF("p", "mm", "a4");
+              const pageWidth = 210;
+              const pageHeight = 297;
+              const imgWidth = pageWidth;
+              const imgHeight = (canvas.height * imgWidth) / canvas.width;
+              const imgData = canvas.toDataURL("image/png");
+
+              let heightLeft = imgHeight;
+              let position = 0;
+
+              pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+              heightLeft -= pageHeight;
+
+              while (heightLeft > 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+              }
+
+              pdf.save(isRTL ? "تقرير-ضغط-الدم.pdf" : "blood-pressure-report.pdf");
+            } finally {
+              document.body.removeChild(tempDiv);
+            }
           }} className="w-full py-3 rounded-2xl bg-info text-info-foreground font-semibold text-center print-hide">
             🖨️ {t.printReport}
           </button>
