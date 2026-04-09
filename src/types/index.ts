@@ -3,6 +3,7 @@ export interface Medication {
   name: string;
   form: 'Pills' | 'Capsules' | 'Liquid' | 'Injection' | 'Drops' | 'Cream' | 'Inhaler' | 'Patches';
   dosage: number;
+  concentration?: string;
   frequency: string;
   times: string[];
   mealRelation: 'No preference' | 'Before meal' | 'After meal' | 'With meal';

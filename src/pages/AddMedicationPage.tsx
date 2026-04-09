@@ -136,6 +136,7 @@ const AddMedicationPage = () => {
   const [mealRelation, setMealRelation] = useState<Medication["mealRelation"]>("No preference");
   const [notes, setNotes] = useState("");
   const [stock, setStock] = useState(30);
+  const [concentration, setConcentration] = useState("");
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
 
   useEffect(() => {
@@ -143,6 +144,7 @@ const AddMedicationPage = () => {
     setName(editingMedication.name);
     setForm(editingMedication.form);
     setDosage(editingMedication.dosage);
+    setConcentration(editingMedication.concentration || "");
     setFrequency(editingMedication.frequency);
     setTimes(editingMedication.times);
     setMealRelation(editingMedication.mealRelation);
@@ -195,6 +197,7 @@ const AddMedicationPage = () => {
       name,
       form,
       dosage,
+      concentration: concentration || undefined,
       frequency,
       times,
       mealRelation,
@@ -260,6 +263,19 @@ const AddMedicationPage = () => {
                   className="w-24 px-4 py-3 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
                 <span className="text-sm text-muted-foreground px-3 py-2 bg-accent rounded-lg">{formsMap[form]}</span>
+              </div>
+            </div>
+            <div>
+              <label className="text-base font-bold text-foreground block mb-2">{t.concentration}</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={concentration}
+                  onChange={(e) => setConcentration(e.target.value)}
+                  placeholder="e.g. 500"
+                  className="w-32 px-4 py-3 rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <span className="text-sm text-muted-foreground px-3 py-2 bg-accent rounded-lg">{t.concentrationUnit}</span>
               </div>
             </div>
             <MedicationImageUpload imageUrl={imageUrl} onChange={setImageUrl} />
@@ -350,6 +366,7 @@ const AddMedicationPage = () => {
               <div className="flex justify-between"><span className="text-muted-foreground">{t.medicationName}</span><span className="font-bold text-foreground flex items-center gap-1">{name} <Check className="w-4 h-4 text-primary" /></span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.form}</span><span className="font-bold text-foreground">{formsMap[form]}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.dosage}</span><span className="font-bold text-foreground">{dosage} {formsMap[form]}</span></div>
+              {concentration && <div className="flex justify-between"><span className="text-muted-foreground">{t.concentration}</span><span className="font-bold text-foreground">{concentration} {t.concentrationUnit}</span></div>}
               <div className="flex justify-between"><span className="text-muted-foreground">{t.frequency}</span><span className="font-bold text-foreground">{freqMap[frequency]}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.times}</span><span className="font-bold text-foreground">{times.join(", ")}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.stock}</span><span className="font-bold text-foreground">{stock} {formsMap[form]}</span></div>
@@ -358,11 +375,19 @@ const AddMedicationPage = () => {
         )}
       </div>
 
-      <div className="px-4 pb-6 pt-2">
+      <div className="px-4 pb-6 pt-2 flex gap-3">
+        {step > 1 && (
+          <button
+            onClick={() => setStep(step - 1)}
+            className="flex-1 py-4 rounded-2xl border border-border bg-card text-foreground font-bold text-lg"
+          >
+            {t.previous}
+          </button>
+        )}
         <button
           onClick={() => (step < totalSteps ? setStep(step + 1) : handleSave())}
           disabled={!canNext()}
-          className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-lg disabled:opacity-50"
+          className="flex-1 py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-lg disabled:opacity-50"
         >
           {step < totalSteps ? t.next : t.save}
         </button>
