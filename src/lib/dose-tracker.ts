@@ -1,5 +1,5 @@
 import { store } from './store';
-import { format, differenceInDays, differenceInWeeks, differenceInMonths, parseISO } from 'date-fns';
+import { format, differenceInDays, differenceInMonths, parseISO, addDays } from 'date-fns';
 import type { DoseRecord } from '@/types';
 
 /**
@@ -54,6 +54,16 @@ export function generateTodayDoses(): DoseRecord[] {
   medications.forEach(med => {
     // Skip if not scheduled today
     if (!isMedScheduledToday(med.frequency, med.startDate)) return;
+
+    // Skip if temporary medication has expired
+    if (!med.isChronic && med.durationDays && med.createdAt) {
+      const createdDate = parseISO(med.createdAt);
+      createdDate.setHours(0, 0, 0, 0);
+      const endDate = addDays(createdDate, med.durationDays);
+      const todayDate = new Date();
+      todayDate.setHours(0, 0, 0, 0);
+      if (todayDate > endDate) return;
+    }
 
     med.times.forEach(time => {
       const exists = todayExisting.some(

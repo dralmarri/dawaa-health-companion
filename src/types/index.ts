@@ -7,6 +7,8 @@ export interface Medication {
   frequency: string;
   times: string[];
   startDate?: string;
+  isChronic: boolean;
+  durationDays?: number;
   mealRelation: 'No preference' | 'Before meal' | 'After meal' | 'With meal';
   notes: string;
   stock: number;
