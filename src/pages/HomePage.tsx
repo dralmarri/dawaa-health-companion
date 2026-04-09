@@ -246,7 +246,5 @@ const FloatingAddButton = ({ navigate, isRTL, t }: { navigate: any; isRTL: boole
       </button>
     </div>
   );
-};
-};
 
 export default HomePage;
