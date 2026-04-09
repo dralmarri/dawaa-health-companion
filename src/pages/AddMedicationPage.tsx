@@ -360,6 +360,53 @@ const AddMedicationPage = () => {
                 }}
               />
             </div>
+            {/* Chronic / Temporary */}
+            <div>
+              <label className="text-base font-bold text-foreground block mb-2">{t.usageType}</label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsChronic(true)}
+                  className={`flex-1 py-3 rounded-xl border text-sm font-bold transition-colors ${isChronic ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border"}`}
+                >
+                  {t.chronic}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsChronic(false)}
+                  className={`flex-1 py-3 rounded-xl border text-sm font-bold transition-colors ${!isChronic ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border"}`}
+                >
+                  {t.temporary}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">{isChronic ? t.chronicDesc : t.temporaryDesc}</p>
+            </div>
+            {!isChronic && (
+              <div>
+                <label className="text-base font-bold text-foreground block mb-2">{t.duration}</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min={1}
+                    value={durationDays}
+                    onChange={(e) => setDurationDays(Number(e.target.value))}
+                    className="w-24 px-4 py-3 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <div className="flex gap-1">
+                    {(['days', 'weeks', 'months'] as const).map((u) => (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => setDurationUnit(u)}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${durationUnit === u ? "bg-primary text-primary-foreground" : "bg-accent text-muted-foreground"}`}
+                      >
+                        {t[u]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
             <div>
               <label className="text-base font-bold text-foreground block mb-2">{t.notes}</label>
               <textarea
@@ -408,6 +455,7 @@ const AddMedicationPage = () => {
               <div className="flex justify-between"><span className="text-muted-foreground">{t.frequency}</span><span className="font-bold text-foreground">{freqMap[frequency]}</span></div>
               {isNonDaily && <div className="flex justify-between"><span className="text-muted-foreground">{t.startDate}</span><span className="font-bold text-foreground">{startDate}</span></div>}
               <div className="flex justify-between"><span className="text-muted-foreground">{t.times}</span><span className="font-bold text-foreground">{times.join(", ")}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{t.usageType}</span><span className="font-bold text-foreground">{isChronic ? t.chronic : `${t.temporary} — ${durationDays} ${t[durationUnit]}`}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">{t.stock}</span><span className="font-bold text-foreground">{stock} {formsMap[form]}</span></div>
             </div>
           </div>
