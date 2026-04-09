@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { format } from "date-fns";
 import { ArrowLeft, Check, AlertCircle, CheckCircle2 } from "lucide-react";
 import ChipSelector from "@/components/ChipSelector";
 import MedicationImageUpload from "@/components/MedicationImageUpload";
@@ -138,6 +139,7 @@ const AddMedicationPage = () => {
   const [stock, setStock] = useState(30);
   const [concentration, setConcentration] = useState("");
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+  const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
 
   useEffect(() => {
     if (!editingMedication) return;
@@ -147,6 +149,7 @@ const AddMedicationPage = () => {
     setConcentration(editingMedication.concentration || "");
     setFrequency(editingMedication.frequency);
     setTimes(editingMedication.times);
+    setStartDate(editingMedication.startDate || format(new Date(), "yyyy-MM-dd"));
     setMealRelation(editingMedication.mealRelation);
     setNotes(editingMedication.notes);
     setStock(editingMedication.stock);
