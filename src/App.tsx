@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import BottomNav from "@/components/BottomNav";
+import { setStoreUid, syncFromCloud, migrateLocalToCloud, initStore } from "@/lib/store";
+import { toast } from "sonner";
 
 import AuthPage from "@/pages/AuthPage";
 import HomePage from "@/pages/HomePage";
@@ -38,6 +40,26 @@ const ProtectedRoute = ({ children, guestMode }: { children: React.ReactNode; gu
 const AppRoutes = () => {
   const { user, loading } = useAuth();
   const [guestMode, setGuestMode] = useState(false);
+
+  // Wire up cloud sync when user logs in
+  useEffect(() => {
+    initStore();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      setStoreUid(user.id);
+      // Migrate local data then sync from cloud
+      migrateLocalToCloud(user.id).then((count) => {
+        if (count > 0) {
+          toast.success(`تم ترحيل ${count} عنصر إلى السحابة`);
+        }
+        return syncFromCloud(user.id);
+      });
+    } else {
+      setStoreUid(null);
+    }
+  }, [user]);
 
   const isLoggedIn = !!user || guestMode;
 
