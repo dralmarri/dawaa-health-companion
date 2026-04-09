@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import BottomNav from "@/components/BottomNav";
 import { setStoreUid, syncFromCloud, migrateLocalToCloud, initStore } from "@/lib/store";
+import { useNotifications } from "@/hooks/useNotifications";
 import { toast } from "sonner";
 
 import AuthPage from "@/pages/AuthPage";
@@ -40,6 +41,7 @@ const ProtectedRoute = ({ children, guestMode }: { children: React.ReactNode; gu
 const AppRoutes = () => {
   const { user, loading } = useAuth();
   const [guestMode, setGuestMode] = useState(false);
+  const { reschedule } = useNotifications();
 
   // Wire up cloud sync when user logs in
   useEffect(() => {
