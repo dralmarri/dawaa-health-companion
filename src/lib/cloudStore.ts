@@ -167,18 +167,21 @@ export const cloudStore = {
     };
   },
   saveSettings: async (uid: string, s: AppSettings) => {
-    await supabase.from("user_settings").upsert({
-      user_id: uid,
-      language: s.language,
-      user_name: s.userName,
-      notifications: s.notifications,
-      voice_notifications: s.voiceNotifications,
-      reminder_before: s.reminderBefore,
-      escalation_on_missed: s.escalationOnMissed,
-      emergency_contact: s.emergencyContact || null,
-      daily_summary: s.dailySummary,
-      daily_summary_time: s.dailySummaryTime,
-    });
+    await supabase.from("user_settings").upsert(
+      {
+        user_id: uid,
+        language: s.language,
+        user_name: s.userName,
+        notifications: s.notifications,
+        voice_notifications: s.voiceNotifications,
+        reminder_before: s.reminderBefore,
+        escalation_on_missed: s.escalationOnMissed,
+        emergency_contact: s.emergencyContact as any || null,
+        daily_summary: s.dailySummary,
+        daily_summary_time: s.dailySummaryTime,
+      },
+      { onConflict: "user_id" }
+    );
   },
 
   // Lab Results (kept as JSON blob)
