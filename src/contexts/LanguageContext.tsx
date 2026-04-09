@@ -355,6 +355,16 @@ const translations = {
     dailySummaryTime: "وقت الملخص",
     startDate: "تاريخ البدء",
     startDateDesc: "متى تبدأ أول جرعة؟",
+    chronic: "مزمن",
+    temporary: "مؤقت",
+    usageType: "نوع الاستخدام",
+    chronicDesc: "دواء مستمر بدون تاريخ انتهاء",
+    temporaryDesc: "لفترة زمنية محددة",
+    duration: "المدة",
+    days: "يوم",
+    weeks: "أسبوع",
+    months: "شهر",
+    medicationEnded: "انتهت فترة العلاج",
   },
 };
 
