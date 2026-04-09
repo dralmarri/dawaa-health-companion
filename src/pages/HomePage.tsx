@@ -58,7 +58,9 @@ const HomePage = () => {
 
   // Group doses by scheduled time
   const groupedDoses = useMemo(() => {
-    const sorted = [...todayDoses].sort((a, b) => {
+    // Filter out taken doses, only show pending and missed
+    const notTaken = todayDoses.filter(d => d.status !== 'taken');
+    const sorted = [...notTaken].sort((a, b) => {
       const statusOrder = { pending: 0, missed: 1, taken: 2 };
       const statusDiff = statusOrder[a.status] - statusOrder[b.status];
       if (statusDiff !== 0) return statusDiff;
