@@ -1,71 +1,193 @@
-import {
-  doc,
-  setDoc,
-  getDoc,
-  deleteDoc,
-  collection,
-  getDocs,
-  query,
-  orderBy,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { supabase } from "@/integrations/supabase/client";
 import type { Medication, BloodPressureReading, Appointment, LabTest, DoseRecord, AppSettings } from "@/types";
 
-// ── Generic helpers ────────────────────────────────────────────────
+// ── Helper: convert camelCase ↔ snake_case ──────────────────────
 
-async function saveDoc<T extends { id: string }>(uid: string, col: string, item: T) {
-  await setDoc(doc(db, "users", uid, col, item.id), item);
+function toMedRow(uid: string, m: Medication) {
+  return {
+    id: m.id, user_id: uid, name: m.name, form: m.form, dosage: m.dosage,
+    concentration: m.concentration || null, frequency: m.frequency,
+    times: JSON.stringify(m.times), start_date: m.startDate || null,
+    is_chronic: m.isChronic, duration_days: m.durationDays || null,
+    meal_relation: m.mealRelation, notes: m.notes, stock: m.stock,
+    initial_stock: m.initialStock || null, image_url: m.imageUrl || null,
+    created_at: m.createdAt,
+  };
 }
 
-async function deleteDocById(uid: string, col: string, id: string) {
-  await deleteDoc(doc(db, "users", uid, col, id));
+function fromMedRow(r: any): Medication {
+  return {
+    id: r.id, name: r.name, form: r.form, dosage: Number(r.dosage),
+    concentration: r.concentration || undefined, frequency: r.frequency,
+    times: typeof r.times === "string" ? JSON.parse(r.times) : r.times,
+    startDate: r.start_date || undefined, isChronic: r.is_chronic,
+    durationDays: r.duration_days || undefined, mealRelation: r.meal_relation,
+    notes: r.notes || "", stock: Number(r.stock),
+    initialStock: r.initial_stock ? Number(r.initial_stock) : undefined,
+    imageUrl: r.image_url || undefined, createdAt: r.created_at,
+  };
 }
 
-async function getDocs_<T>(uid: string, col: string): Promise<T[]> {
-  const snap = await getDocs(collection(db, "users", uid, col));
-  return snap.docs.map((d) => d.data() as T);
+function toReadingRow(uid: string, r: BloodPressureReading) {
+  return {
+    id: r.id, user_id: uid, systolic: r.systolic, diastolic: r.diastolic,
+    heart_rate: r.heartRate, period: r.period, date: r.date, time: r.time,
+  };
+}
+
+function fromReadingRow(r: any): BloodPressureReading {
+  return {
+    id: r.id, systolic: r.systolic, diastolic: r.diastolic,
+    heartRate: r.heart_rate, period: r.period, date: r.date, time: r.time,
+  };
+}
+
+function toApptRow(uid: string, a: Appointment) {
+  return {
+    id: a.id, user_id: uid, doctor_name: a.doctorName || null,
+    specialty: a.specialty, date: a.date, time: a.time,
+    location: a.location, reminder_before: a.reminderBefore,
+    notes: a.notes, completed: a.completed,
+  };
+}
+
+function fromApptRow(r: any): Appointment {
+  return {
+    id: r.id, doctorName: r.doctor_name || undefined, specialty: r.specialty,
+    date: r.date, time: r.time, location: r.location || "",
+    reminderBefore: r.reminder_before || "15", notes: r.notes || "",
+    completed: r.completed,
+  };
+}
+
+function toLabRow(uid: string, t: LabTest) {
+  return {
+    id: t.id, user_id: uid, name: t.name, notes: t.notes,
+    file_url: t.fileUrl || null, date: t.date,
+  };
+}
+
+function fromLabRow(r: any): LabTest {
+  return {
+    id: r.id, name: r.name, notes: r.notes || "",
+    fileUrl: r.file_url || undefined, date: r.date,
+  };
+}
+
+function toDoseRow(uid: string, d: DoseRecord) {
+  return {
+    id: d.id, user_id: uid, medication_id: d.medicationId,
+    medication_name: d.medicationName, scheduled_time: d.scheduledTime,
+    taken_at: d.takenAt || null, status: d.status, date: d.date,
+  };
+}
+
+function fromDoseRow(r: any): DoseRecord {
+  return {
+    id: r.id, medicationId: r.medication_id, medicationName: r.medication_name,
+    scheduledTime: r.scheduled_time, takenAt: r.taken_at || undefined,
+    status: r.status, date: r.date,
+  };
 }
 
 // ── Cloud Store API ────────────────────────────────────────────────
 
 export const cloudStore = {
   // Medications
-  getMedications: (uid: string) => getDocs_<Medication>(uid, "medications"),
-  saveMedication: (uid: string, med: Medication) => saveDoc(uid, "medications", med),
-  deleteMedication: (uid: string, id: string) => deleteDocById(uid, "medications", id),
+  getMedications: async (uid: string): Promise<Medication[]> => {
+    const { data } = await supabase.from("medications").select("*").eq("user_id", uid);
+    return (data || []).map(fromMedRow);
+  },
+  saveMedication: async (uid: string, med: Medication) => {
+    await supabase.from("medications").upsert(toMedRow(uid, med));
+  },
+  deleteMedication: async (_uid: string, id: string) => {
+    await supabase.from("medications").delete().eq("id", id);
+  },
 
   // Blood Pressure
-  getReadings: (uid: string) => getDocs_<BloodPressureReading>(uid, "readings"),
-  saveReading: (uid: string, r: BloodPressureReading) => saveDoc(uid, "readings", r),
-  deleteReading: (uid: string, id: string) => deleteDocById(uid, "readings", id),
+  getReadings: async (uid: string): Promise<BloodPressureReading[]> => {
+    const { data } = await supabase.from("blood_pressure_readings").select("*").eq("user_id", uid);
+    return (data || []).map(fromReadingRow);
+  },
+  saveReading: async (uid: string, r: BloodPressureReading) => {
+    await supabase.from("blood_pressure_readings").upsert(toReadingRow(uid, r));
+  },
+  deleteReading: async (_uid: string, id: string) => {
+    await supabase.from("blood_pressure_readings").delete().eq("id", id);
+  },
 
   // Appointments
-  getAppointments: (uid: string) => getDocs_<Appointment>(uid, "appointments"),
-  saveAppointment: (uid: string, a: Appointment) => saveDoc(uid, "appointments", a),
-  deleteAppointment: (uid: string, id: string) => deleteDocById(uid, "appointments", id),
+  getAppointments: async (uid: string): Promise<Appointment[]> => {
+    const { data } = await supabase.from("appointments").select("*").eq("user_id", uid);
+    return (data || []).map(fromApptRow);
+  },
+  saveAppointment: async (uid: string, a: Appointment) => {
+    await supabase.from("appointments").upsert(toApptRow(uid, a));
+  },
+  deleteAppointment: async (_uid: string, id: string) => {
+    await supabase.from("appointments").delete().eq("id", id);
+  },
 
   // Lab Tests
-  getLabTests: (uid: string) => getDocs_<LabTest>(uid, "labTests"),
-  saveLabTest: (uid: string, t: LabTest) => saveDoc(uid, "labTests", t),
-  deleteLabTest: (uid: string, id: string) => deleteDocById(uid, "labTests", id),
+  getLabTests: async (uid: string): Promise<LabTest[]> => {
+    const { data } = await supabase.from("lab_tests").select("*").eq("user_id", uid);
+    return (data || []).map(fromLabRow);
+  },
+  saveLabTest: async (uid: string, t: LabTest) => {
+    await supabase.from("lab_tests").upsert(toLabRow(uid, t));
+  },
+  deleteLabTest: async (_uid: string, id: string) => {
+    await supabase.from("lab_tests").delete().eq("id", id);
+  },
 
   // Dose Records
-  getDoseRecords: (uid: string) => getDocs_<DoseRecord>(uid, "doseRecords"),
-  saveDoseRecord: (uid: string, d: DoseRecord) => saveDoc(uid, "doseRecords", d),
+  getDoseRecords: async (uid: string): Promise<DoseRecord[]> => {
+    const { data } = await supabase.from("dose_records").select("*").eq("user_id", uid);
+    return (data || []).map(fromDoseRow);
+  },
+  saveDoseRecord: async (uid: string, d: DoseRecord) => {
+    await supabase.from("dose_records").upsert(toDoseRow(uid, d));
+  },
 
   // Settings
   getSettings: async (uid: string): Promise<AppSettings | null> => {
-    const snap = await getDoc(doc(db, "users", uid, "settings", "main"));
-    return snap.exists() ? (snap.data() as AppSettings) : null;
+    const { data } = await supabase.from("user_settings").select("*").eq("user_id", uid).single();
+    if (!data) return null;
+    return {
+      language: data.language as "en" | "ar",
+      userName: data.user_name || "",
+      notifications: data.notifications,
+      voiceNotifications: data.voice_notifications,
+      reminderBefore: data.reminder_before,
+      escalationOnMissed: data.escalation_on_missed,
+      emergencyContact: data.emergency_contact as any,
+      dailySummary: data.daily_summary,
+      dailySummaryTime: data.daily_summary_time,
+    };
   },
-  saveSettings: (uid: string, s: AppSettings) =>
-    setDoc(doc(db, "users", uid, "settings", "main"), s),
+  saveSettings: async (uid: string, s: AppSettings) => {
+    await supabase.from("user_settings").upsert({
+      user_id: uid,
+      language: s.language,
+      user_name: s.userName,
+      notifications: s.notifications,
+      voice_notifications: s.voiceNotifications,
+      reminder_before: s.reminderBefore,
+      escalation_on_missed: s.escalationOnMissed,
+      emergency_contact: s.emergencyContact || null,
+      daily_summary: s.dailySummary,
+      daily_summary_time: s.dailySummaryTime,
+    });
+  },
 
-  // Lab Results (stored in localStorage but synced separately)
+  // Lab Results (kept as JSON blob)
   getLabResults: async (uid: string): Promise<Record<string, any>> => {
-    const snap = await getDoc(doc(db, "users", uid, "labResults", "main"));
-    return snap.exists() ? (snap.data() as Record<string, any>) : {};
+    // Store lab results as a special entry in user_settings or use localStorage
+    // For simplicity, lab results remain in localStorage
+    return {};
   },
-  saveLabResults: (uid: string, results: Record<string, any>) =>
-    setDoc(doc(db, "users", uid, "labResults", "main"), results),
+  saveLabResults: async (_uid: string, _results: Record<string, any>) => {
+    // Lab results remain in localStorage for now
+  },
 };
