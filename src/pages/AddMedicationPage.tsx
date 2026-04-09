@@ -212,6 +212,8 @@ const AddMedicationPage = () => {
 
   const isNonDaily = ["Every week", "Every 2 weeks", "Every month"].includes(frequency);
 
+  const computedDurationDays = durationUnit === 'weeks' ? durationDays * 7 : durationUnit === 'months' ? durationDays * 30 : durationDays;
+
   const handleSave = async () => {
     const med: Medication = {
       id: editingMedication?.id || crypto.randomUUID(),
@@ -222,6 +224,8 @@ const AddMedicationPage = () => {
       frequency,
       times,
       startDate: isNonDaily ? startDate : undefined,
+      isChronic,
+      durationDays: isChronic ? undefined : computedDurationDays,
       mealRelation,
       notes,
       stock,
