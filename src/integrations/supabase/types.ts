@@ -14,7 +14,258 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      appointments: {
+        Row: {
+          completed: boolean
+          created_at: string
+          date: string
+          doctor_name: string | null
+          id: string
+          location: string | null
+          notes: string | null
+          reminder_before: string | null
+          specialty: string
+          time: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          date: string
+          doctor_name?: string | null
+          id: string
+          location?: string | null
+          notes?: string | null
+          reminder_before?: string | null
+          specialty?: string
+          time: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          date?: string
+          doctor_name?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          reminder_before?: string | null
+          specialty?: string
+          time?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      blood_pressure_readings: {
+        Row: {
+          created_at: string
+          date: string
+          diastolic: number
+          heart_rate: number
+          id: string
+          period: string
+          systolic: number
+          time: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          diastolic: number
+          heart_rate?: number
+          id: string
+          period?: string
+          systolic: number
+          time: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          diastolic?: number
+          heart_rate?: number
+          id?: string
+          period?: string
+          systolic?: number
+          time?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      dose_records: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          medication_id: string
+          medication_name: string
+          scheduled_time: string
+          status: string
+          taken_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id: string
+          medication_id: string
+          medication_name: string
+          scheduled_time: string
+          status?: string
+          taken_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          medication_id?: string
+          medication_name?: string
+          scheduled_time?: string
+          status?: string
+          taken_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      lab_tests: {
+        Row: {
+          created_at: string
+          date: string
+          file_url: string | null
+          id: string
+          name: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          file_url?: string | null
+          id: string
+          name: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          file_url?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      medications: {
+        Row: {
+          concentration: string | null
+          created_at: string
+          dosage: number
+          duration_days: number | null
+          form: string
+          frequency: string
+          id: string
+          image_url: string | null
+          initial_stock: number | null
+          is_chronic: boolean
+          meal_relation: string
+          name: string
+          notes: string | null
+          start_date: string | null
+          stock: number
+          times: Json
+          user_id: string
+        }
+        Insert: {
+          concentration?: string | null
+          created_at?: string
+          dosage?: number
+          duration_days?: number | null
+          form: string
+          frequency?: string
+          id: string
+          image_url?: string | null
+          initial_stock?: number | null
+          is_chronic?: boolean
+          meal_relation?: string
+          name: string
+          notes?: string | null
+          start_date?: string | null
+          stock?: number
+          times?: Json
+          user_id: string
+        }
+        Update: {
+          concentration?: string | null
+          created_at?: string
+          dosage?: number
+          duration_days?: number | null
+          form?: string
+          frequency?: string
+          id?: string
+          image_url?: string | null
+          initial_stock?: number | null
+          is_chronic?: boolean
+          meal_relation?: string
+          name?: string
+          notes?: string | null
+          start_date?: string | null
+          stock?: number
+          times?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          created_at: string
+          daily_summary: boolean
+          daily_summary_time: string
+          emergency_contact: Json | null
+          escalation_on_missed: boolean
+          id: string
+          language: string
+          notifications: boolean
+          reminder_before: string
+          updated_at: string
+          user_id: string
+          user_name: string | null
+          voice_notifications: boolean
+        }
+        Insert: {
+          created_at?: string
+          daily_summary?: boolean
+          daily_summary_time?: string
+          emergency_contact?: Json | null
+          escalation_on_missed?: boolean
+          id?: string
+          language?: string
+          notifications?: boolean
+          reminder_before?: string
+          updated_at?: string
+          user_id: string
+          user_name?: string | null
+          voice_notifications?: boolean
+        }
+        Update: {
+          created_at?: string
+          daily_summary?: boolean
+          daily_summary_time?: string
+          emergency_contact?: Json | null
+          escalation_on_missed?: boolean
+          id?: string
+          language?: string
+          notifications?: boolean
+          reminder_before?: string
+          updated_at?: string
+          user_id?: string
+          user_name?: string | null
+          voice_notifications?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
