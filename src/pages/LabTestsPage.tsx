@@ -403,10 +403,14 @@ const LabTestsPage = () => {
                       </p>
                       {test.notes && <p className="text-sm text-muted-foreground mt-1">📝 {test.notes}</p>}
                     </div>
-                    <button onClick={() => handleDelete(test.id)} className="text-destructive/60 hover:text-destructive p-1">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => openEdit(test)} className="p-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => handleDelete(test.id)} className="text-destructive/60 hover:text-destructive p-1">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
 
                   <div className="flex gap-2 mt-3 flex-wrap">
                     {hasImage && (
