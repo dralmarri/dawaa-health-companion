@@ -92,7 +92,25 @@ const BloodPressurePage = () => {
 
         {readings.length > 0 && (
           <button onClick={() => {
-            window.print();
+            const header = isRTL ? "تقرير ضغط الدم" : "Blood Pressure Report";
+            const date = format(new Date(), "yyyy-MM-dd");
+            const lines = readings.map(r =>
+              `${r.date} ${r.time} | ${r.systolic}/${r.diastolic} mmHg | ♥ ${r.heartRate} bpm | ${r.period}`
+            );
+            const text = `${header}\n${"─".repeat(40)}\n${lines.join("\n")}\n${"─".repeat(40)}\n${date}`;
+            
+            // Try native share (works on iOS/Android), fallback to print
+            if (navigator.share) {
+              navigator.share({ title: header, text }).catch(() => {});
+            } else {
+              // Web fallback: open printable window
+              const win = window.open("", "_blank");
+              if (win) {
+                win.document.write(`<html dir="${isRTL ? 'rtl' : 'ltr'}"><head><title>${header}</title><style>body{font-family:system-ui;padding:2rem;direction:${isRTL ? 'rtl' : 'ltr'}}table{width:100%;border-collapse:collapse;margin-top:1rem}th,td{border:1px solid #ccc;padding:8px;text-align:${isRTL ? 'right' : 'left'}}th{background:#f5f5f5}</style></head><body><h1>${header}</h1><table><tr><th>${isRTL ? 'التاريخ' : 'Date'}</th><th>${isRTL ? 'الوقت' : 'Time'}</th><th>${isRTL ? 'الانقباضي' : 'Systolic'}</th><th>${isRTL ? 'الانبساطي' : 'Diastolic'}</th><th>${isRTL ? 'النبض' : 'HR'}</th><th>${isRTL ? 'الفترة' : 'Period'}</th></tr>${readings.map(r => `<tr><td>${r.date}</td><td>${r.time}</td><td>${r.systolic}</td><td>${r.diastolic}</td><td>${r.heartRate}</td><td>${r.period}</td></tr>`).join("")}</table></body></html>`);
+                win.document.close();
+                win.print();
+              }
+            }
           }} className="w-full py-3 rounded-2xl bg-info text-info-foreground font-semibold text-center print-hide">
             🖨️ {t.printReport}
           </button>
