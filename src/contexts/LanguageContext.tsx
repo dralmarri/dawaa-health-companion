@@ -343,6 +343,8 @@ const translations = {
     dailySummary: "ملخص يومي",
     dailySummaryDesc: "إشعار صباحي بجميع أدوية اليوم",
     dailySummaryTime: "وقت الملخص",
+    startDate: "تاريخ البدء",
+    startDateDesc: "متى تبدأ أول جرعة؟",
   },
 };
 
