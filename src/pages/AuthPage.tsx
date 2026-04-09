@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Heart, Mail, Lock, Eye, EyeOff, UserX } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, UserX } from "lucide-react";
+import appIcon from "@/assets/app-icon.png";
 
 type Mode = "login" | "register" | "reset";
 
@@ -43,8 +44,8 @@ const AuthPage = ({ onSkip }: AuthPageProps) => {
     <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center px-4" dir={isRTL ? "rtl" : "ltr"}>
       {/* Logo */}
       <div className="mb-8 text-center">
-        <div className="w-20 h-20 bg-primary rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-          <Heart className="w-10 h-10 text-primary-foreground" fill="currentColor" />
+        <div className="w-20 h-20 rounded-3xl overflow-hidden mx-auto mb-4 shadow-lg">
+          <img src={appIcon} alt="Dawaa+" className="w-full h-full object-cover" />
         </div>
         <h1 className="text-2xl font-bold text-foreground">دواء</h1>
         <p className="text-sm text-muted-foreground mt-1">رفيقك الصحي</p>
