@@ -239,36 +239,69 @@ const LabTestsPage = () => {
   const handlePrint = async (test: LabTest) => {
     const results = savedResults[test.id] || JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}")[test.id];
     const dateStr = format(new Date(test.date), "yyyy/MM/dd - hh:mm a");
+    const hasImage = test.fileUrl && !test.fileUrl.startsWith("pdf:");
 
     const { default: jsPDF } = await import("jspdf");
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-
     const pageWidth = pdf.internal.pageSize.getWidth();
-    let y = 20;
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    let y = 15;
 
-    pdf.setFontSize(18);
+    // Title and date
+    pdf.setFontSize(16);
     pdf.text(test.name, pageWidth / 2, y, { align: "center" });
-    y += 10;
-    pdf.setFontSize(11);
+    y += 8;
+    pdf.setFontSize(10);
     pdf.setTextColor(100);
     pdf.text(dateStr, pageWidth / 2, y, { align: "center" });
     pdf.setTextColor(0);
-    y += 10;
+    y += 8;
 
+    // If there's an attached image, show it prominently
+    if (hasImage && test.fileUrl) {
+      try {
+        const img = document.createElement("img");
+        img.crossOrigin = "anonymous";
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject();
+          img.src = test.fileUrl!;
+        });
+
+        const imgRatio = img.naturalWidth / img.naturalHeight;
+        const maxW = pageWidth - 20; // 10mm margins
+        const maxH = pageHeight - y - 15; // leave bottom margin
+        let w = maxW;
+        let h = w / imgRatio;
+        if (h > maxH) {
+          h = maxH;
+          w = h * imgRatio;
+        }
+        const x = (pageWidth - w) / 2;
+        pdf.addImage(test.fileUrl, "JPEG", x, y, w, h);
+        y += h + 5;
+      } catch {
+        // Image failed to load, continue without it
+      }
+    }
+
+    // Notes
     if (test.notes) {
+      if (y > pageHeight - 30) { pdf.addPage(); y = 15; }
       pdf.setFontSize(10);
       const noteLines = pdf.splitTextToSize(test.notes, pageWidth - 40);
       pdf.text(noteLines, 20, y);
       y += noteLines.length * 5 + 5;
     }
 
+    // Results table (on new page if image took most of the space)
     if (results && results.length > 0) {
+      if (y > pageHeight - 40) { pdf.addPage(); y = 15; }
       pdf.setFontSize(10);
       const colWidths = [55, 35, 40, 40];
       const headers = ["Test", "Result", "Normal Range", "Status"];
       const startX = 20;
 
-      // Header row
       pdf.setFillColor(243, 244, 246);
       pdf.rect(startX, y - 4, colWidths.reduce((a, b) => a + b, 0), 8, "F");
       pdf.setFont(undefined!, "bold");
@@ -297,9 +330,6 @@ const LabTestsPage = () => {
         pdf.setTextColor(0);
         y += 7;
       });
-    } else {
-      pdf.setFontSize(12);
-      pdf.text("No analyzed results", pageWidth / 2, y, { align: "center" });
     }
 
     try {
@@ -315,7 +345,6 @@ const LabTestsPage = () => {
         url: file.uri,
       });
     } catch {
-      // Fallback for web
       pdf.save(`lab-report-${test.name}.pdf`);
     }
   };
