@@ -165,7 +165,23 @@ const BloodPressurePage = () => {
                 heightLeft -= pageHeight;
               }
 
-              pdf.save(isRTL ? "تقرير-ضغط-الدم.pdf" : "blood-pressure-report.pdf");
+              // Use base64 data URI to avoid blob URL issues on iOS Capacitor
+              const pdfDataUri = pdf.output('datauristring');
+              const newWindow = window.open('', '_blank');
+              if (newWindow) {
+                newWindow.document.write(
+                  `<html><head><title>${isRTL ? "تقرير ضغط الدم" : "Blood Pressure Report"}</title></head>` +
+                  `<body style="margin:0"><iframe src="${pdfDataUri}" style="width:100%;height:100%;border:none;"></iframe></body></html>`
+                );
+              } else {
+                // Fallback: create a download link
+                const link = document.createElement('a');
+                link.href = pdfDataUri;
+                link.download = isRTL ? "تقرير-ضغط-الدم.pdf" : "blood-pressure-report.pdf";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }
             } finally {
               document.body.removeChild(tempDiv);
             }
