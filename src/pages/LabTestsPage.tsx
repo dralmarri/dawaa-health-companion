@@ -7,6 +7,8 @@ import EmptyState from "@/components/EmptyState";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { analyzeValue, labReferences, type AnalyzedResult } from "@/lib/lab-references";
 import type { LabTest } from "@/types";
+import { Filesystem, Directory } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 
 interface ManualEntry {
   id: string;
