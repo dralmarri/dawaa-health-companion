@@ -119,16 +119,23 @@ export function generateTodayDoses(): DoseRecord[] {
 
   // Auto-mark past pending doses as missed
   const now = new Date();
-  const currentTime = format(now, 'HH:mm');
+  const nowH = now.getHours();
+  const nowM = now.getMinutes();
   const allRecords = store.getDoseRecords();
 
   allRecords.forEach(record => {
-    if (record.date === today && record.status === 'pending' && record.scheduledTime < currentTime) {
-      const [h, m] = record.scheduledTime.split(':').map(Number);
-      const doseTime = new Date();
-      doseTime.setHours(h, m + 30, 0, 0);
+    if (record.date === today && record.status === 'pending') {
+      const parts = record.scheduledTime.split(':').map(Number);
+      const schedH = parts[0] || 0;
+      const schedM = parts[1] || 0;
 
-      if (now > doseTime) {
+      // Only mark as missed if current time is past scheduledTime + 30 min grace
+      const graceTotal = schedM + 30;
+      const missedH = schedH + Math.floor(graceTotal / 60);
+      const missedM = graceTotal % 60;
+
+      const isPast = nowH > missedH || (nowH === missedH && nowM >= missedM);
+      if (isPast) {
         record.status = 'missed';
         store.saveDoseRecord(record);
       }
