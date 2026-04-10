@@ -75,22 +75,11 @@ export function generateTodayDoses(): DoseRecord[] {
 
   // If duplicates were found, clean them up in store
   if (deduped.length < todayRecords.length) {
-    // Get IDs to keep
     const keepIds = new Set(deduped.map(r => r.id));
-    // Remove duplicate records from store (keep non-today + deduped today)
     const cleanedRecords = allExisting.filter(r => r.date !== today || keepIds.has(r.id));
-    // Batch update the store cache
-    const KEYS_doseRecords = 'dawaa_doseRecords';
-    // We need to directly set the cache - use a workaround by saving each deduped record
-    // Actually, let's just rebuild by removing duplicates
-    const duplicateIds = todayRecords.filter(r => !keepIds.has(r.id)).map(r => r.id);
-    // Remove duplicates from cache by re-saving the cleaned list
-    if (duplicateIds.length > 0) {
-      console.log(`[DoseTracker] Removed ${duplicateIds.length} duplicate dose records`);
-      // Direct cache update through store internals
-      (store as any)._setDoseRecords?.(cleanedRecords);
-      // Fallback: just work with deduped for this session
-    }
+    const duplicateCount = todayRecords.length - deduped.length;
+    console.log(`[DoseTracker] Removed ${duplicateCount} duplicate dose records`);
+    store._setDoseRecords(cleanedRecords);
   }
 
   // Track what already exists using a Set for O(1) lookup
