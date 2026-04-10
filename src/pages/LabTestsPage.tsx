@@ -236,62 +236,88 @@ const LabTestsPage = () => {
     setShowResults(showResults === testId ? null : testId);
   };
 
-  const handlePrint = (test: LabTest) => {
+  const handlePrint = async (test: LabTest) => {
     const results = savedResults[test.id] || JSON.parse(localStorage.getItem("dawaa_lab_results") || "{}")[test.id];
-    const header = test.name;
     const dateStr = format(new Date(test.date), "yyyy/MM/dd - hh:mm a");
 
-    let rows = "";
-    if (results && results.length > 0) {
-      rows = results.map((r: AnalyzedResult) => {
-        const status = r.status === "normal" ? "✓ طبيعي" : r.status === "high" ? "⬆ عالي" : "⬇ منخفض";
-        const statusColor = r.status === "normal" ? "#16a34a" : r.status === "high" ? "#dc2626" : "#2563eb";
-        return `<tr><td>${r.testName}</td><td>${r.value} ${r.unit}</td><td>${r.normalRange.min}-${r.normalRange.max}</td><td style="color:${statusColor};font-weight:bold">${status}</td></tr>`;
-      }).join("");
+    const { default: jsPDF } = await import("jspdf");
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    let y = 20;
+
+    pdf.setFontSize(18);
+    pdf.text(test.name, pageWidth / 2, y, { align: "center" });
+    y += 10;
+    pdf.setFontSize(11);
+    pdf.setTextColor(100);
+    pdf.text(dateStr, pageWidth / 2, y, { align: "center" });
+    pdf.setTextColor(0);
+    y += 10;
+
+    if (test.notes) {
+      pdf.setFontSize(10);
+      const noteLines = pdf.splitTextToSize(test.notes, pageWidth - 40);
+      pdf.text(noteLines, 20, y);
+      y += noteLines.length * 5 + 5;
     }
 
-    const printWindow = window.open("", "_blank", "noopener,noreferrer");
-    if (!printWindow) return;
+    if (results && results.length > 0) {
+      pdf.setFontSize(10);
+      const colWidths = [55, 35, 40, 40];
+      const headers = ["Test", "Result", "Normal Range", "Status"];
+      const startX = 20;
 
-    printWindow.document.write(`
-      <!doctype html>
-      <html lang="${isRTL ? "ar" : "en"}" dir="${isRTL ? "rtl" : "ltr"}">
-        <head>
-          <meta charset="utf-8" />
-          <title>${header}</title>
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; padding: 32px 20px; color: #111827; }
-            .wrap { max-width: 900px; margin: 0 auto; }
-            h1 { margin: 0 0 4px; font-size: 24px; }
-            .date { color: #6b7280; margin-bottom: 8px; }
-            .notes { color: #374151; margin-bottom: 20px; padding: 10px; background: #f9fafb; border-radius: 8px; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #d1d5db; padding: 10px 12px; text-align: ${isRTL ? "right" : "left"}; }
-            th { background: #f3f4f6; }
-          </style>
-        </head>
-        <body>
-          <div class="wrap">
-            <h1>${header}</h1>
-            <p class="date">${dateStr}</p>
-            ${test.notes ? `<div class="notes">${test.notes}</div>` : ""}
-            ${rows ? `<table>
-              <thead><tr>
-                <th>${isRTL ? "التحليل" : "Test"}</th>
-                <th>${isRTL ? "النتيجة" : "Result"}</th>
-                <th>${isRTL ? "المعدل الطبيعي" : "Normal Range"}</th>
-                <th>${isRTL ? "الحالة" : "Status"}</th>
-              </tr></thead>
-              <tbody>${rows}</tbody>
-            </table>` : `<p>${isRTL ? "لا توجد نتائج محللة" : "No analyzed results"}</p>`}
-          </div>
-          <script>
-            window.onload = function () { setTimeout(function () { window.print(); }, 350); };
-          <\/script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+      // Header row
+      pdf.setFillColor(243, 244, 246);
+      pdf.rect(startX, y - 4, colWidths.reduce((a, b) => a + b, 0), 8, "F");
+      pdf.setFont(undefined!, "bold");
+      let x = startX;
+      headers.forEach((h, i) => {
+        pdf.text(h, x + 2, y);
+        x += colWidths[i];
+      });
+      pdf.setFont(undefined!, "normal");
+      y += 8;
+
+      results.forEach((r: AnalyzedResult) => {
+        if (y > 270) { pdf.addPage(); y = 20; }
+        x = startX;
+        pdf.text(r.testName, x + 2, y);
+        x += colWidths[0];
+        pdf.text(`${r.value} ${r.unit}`, x + 2, y);
+        x += colWidths[1];
+        pdf.text(`${r.normalRange.min}-${r.normalRange.max}`, x + 2, y);
+        x += colWidths[2];
+        const statusText = r.status === "normal" ? "Normal" : r.status === "high" ? "High" : "Low";
+        if (r.status === "high") pdf.setTextColor(220, 38, 38);
+        else if (r.status === "low") pdf.setTextColor(37, 99, 235);
+        else pdf.setTextColor(22, 163, 74);
+        pdf.text(statusText, x + 2, y);
+        pdf.setTextColor(0);
+        y += 7;
+      });
+    } else {
+      pdf.setFontSize(12);
+      pdf.text("No analyzed results", pageWidth / 2, y, { align: "center" });
+    }
+
+    try {
+      const base64 = pdf.output("datauristring").split(",")[1];
+      const fileName = `lab-report-${format(new Date(), "yyyyMMdd-HHmmss")}.pdf`;
+      const file = await Filesystem.writeFile({
+        path: fileName,
+        data: base64,
+        directory: Directory.Cache,
+      });
+      await Share.share({
+        title: test.name,
+        url: file.uri,
+      });
+    } catch {
+      // Fallback for web
+      pdf.save(`lab-report-${test.name}.pdf`);
+    }
   };
 
   const getStatusIcon = (status: string) => {
