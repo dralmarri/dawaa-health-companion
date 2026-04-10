@@ -9,17 +9,15 @@ function isMedScheduledToday(frequency: string, startDate?: string): boolean {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Daily frequencies always apply
   if (['Once daily', 'Twice daily', 'Three times daily', 'Four times daily', 'Every X hours'].includes(frequency)) {
     return true;
   }
 
-  if (!startDate) return true; // No start date = assume today
+  if (!startDate) return true;
 
   const start = parseISO(startDate);
   start.setHours(0, 0, 0, 0);
 
-  // Don't schedule before start date
   if (today < start) return false;
 
   const daysDiff = differenceInDays(today, start);
@@ -29,13 +27,37 @@ function isMedScheduledToday(frequency: string, startDate?: string): boolean {
       return daysDiff % 7 === 0;
     case 'Every 2 weeks':
       return daysDiff % 14 === 0;
-    case 'Every month': {
-      // Same day of month
+    case 'Every month':
       return today.getDate() === start.getDate() && differenceInMonths(today, start) >= 0;
-    }
     default:
       return true;
   }
+}
+
+/**
+ * Deduplicate dose records: keep only ONE record per medicationId+scheduledTime+date.
+ * Prefer taken > missed > pending. If same status, keep the one with an earlier id (first created).
+ */
+function deduplicateRecords(records: DoseRecord[]): DoseRecord[] {
+  const statusPriority: Record<string, number> = { taken: 0, missed: 1, pending: 2 };
+  const map = new Map<string, DoseRecord>();
+
+  for (const r of records) {
+    const key = `${r.medicationId}|${r.scheduledTime}|${r.date}`;
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, r);
+    } else {
+      // Keep the one with higher priority status
+      const existingPriority = statusPriority[existing.status] ?? 3;
+      const newPriority = statusPriority[r.status] ?? 3;
+      if (newPriority < existingPriority) {
+        map.set(key, r);
+      }
+    }
+  }
+
+  return Array.from(map.values());
 }
 
 /**
@@ -45,17 +67,30 @@ function isMedScheduledToday(frequency: string, startDate?: string): boolean {
 export function generateTodayDoses(): DoseRecord[] {
   const today = format(new Date(), 'yyyy-MM-dd');
   const medications = store.getMedications();
-  const existing = store.getDoseRecords();
+  const allExisting = store.getDoseRecords();
 
-  const todayExisting = existing.filter(r => r.date === today);
+  // First, deduplicate any existing records for today
+  const todayRecords = allExisting.filter(r => r.date === today);
+  const deduped = deduplicateRecords(todayRecords);
 
-  let created = false;
+  // If duplicates were found, clean them up in store
+  if (deduped.length < todayRecords.length) {
+    const keepIds = new Set(deduped.map(r => r.id));
+    const cleanedRecords = allExisting.filter(r => r.date !== today || keepIds.has(r.id));
+    const duplicateCount = todayRecords.length - deduped.length;
+    console.log(`[DoseTracker] Removed ${duplicateCount} duplicate dose records`);
+    store._setDoseRecords(cleanedRecords);
+  }
+
+  // Track what already exists using a Set for O(1) lookup
+  const existingKeys = new Set(
+    deduped.map(r => `${r.medicationId}|${r.scheduledTime}`)
+  );
 
   medications.forEach(med => {
-    // Skip if not scheduled today
     if (!isMedScheduledToday(med.frequency, med.startDate)) return;
 
-    // Skip if temporary medication has expired
+    // Skip expired temporary medications
     if (!med.isChronic && med.durationDays && med.createdAt) {
       const createdDate = parseISO(med.createdAt);
       createdDate.setHours(0, 0, 0, 0);
@@ -66,11 +101,9 @@ export function generateTodayDoses(): DoseRecord[] {
     }
 
     med.times.forEach(time => {
-      const exists = todayExisting.some(
-        r => r.medicationId === med.id && r.scheduledTime === time
-      );
-
-      if (!exists) {
+      const key = `${med.id}|${time}`;
+      if (!existingKeys.has(key)) {
+        existingKeys.add(key); // Prevent duplicates within same call
         const record: DoseRecord = {
           id: crypto.randomUUID(),
           medicationId: med.id,
@@ -80,7 +113,6 @@ export function generateTodayDoses(): DoseRecord[] {
           date: today,
         };
         store.saveDoseRecord(record);
-        created = true;
       }
     });
   });
@@ -92,7 +124,6 @@ export function generateTodayDoses(): DoseRecord[] {
 
   allRecords.forEach(record => {
     if (record.date === today && record.status === 'pending' && record.scheduledTime < currentTime) {
-      // Give 30 min grace period
       const [h, m] = record.scheduledTime.split(':').map(Number);
       const doseTime = new Date();
       doseTime.setHours(h, m + 30, 0, 0);
@@ -103,16 +134,16 @@ export function generateTodayDoses(): DoseRecord[] {
       }
     }
 
-    // Mark yesterday's pending as missed
     if (record.date < today && record.status === 'pending') {
       record.status = 'missed';
       store.saveDoseRecord(record);
     }
   });
 
-  // Filter out dose records for deleted medications
+  // Return deduplicated today's records for active medications only
   const medIds = new Set(medications.map(m => m.id));
-  return store.getDoseRecords().filter(r => r.date === today && medIds.has(r.medicationId));
+  const finalRecords = store.getDoseRecords().filter(r => r.date === today && medIds.has(r.medicationId));
+  return deduplicateRecords(finalRecords);
 }
 
 /**
@@ -133,7 +164,6 @@ export function markDoseTaken(recordId: string): { lowStockMed?: { name: string;
       med.stock -= 1;
       store.saveMedication(med);
 
-      // Check low stock (20% of initial)
       const initial = med.initialStock || med.stock + 1;
       const percent = Math.round((med.stock / initial) * 100);
       if (percent <= 20) {

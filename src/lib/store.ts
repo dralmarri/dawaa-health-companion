@@ -133,6 +133,11 @@ export const store = {
     if (currentUid) await cloudStore.saveDoseRecord(currentUid, d);
   },
 
+  /** Bulk replace all dose records (used for deduplication cleanup) */
+  _setDoseRecords: async (records: DoseRecord[]) => {
+    await setCache(KEYS.doseRecords, records);
+  },
+
   getSettings: (): AppSettings =>
     getCache(KEYS.settings, defaultSettings),
 
