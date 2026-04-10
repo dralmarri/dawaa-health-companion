@@ -30,7 +30,9 @@ const HomePage = () => {
   const taken = todayDoses.filter((d) => d.status === "taken").length;
   const missed = todayDoses.filter((d) => d.status === "missed").length;
 
-  const handleTaken = (id: string) => {
+  const handleTaken = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
     const { lowStockMed } = markDoseTaken(id);
     setTodayDoses(generateTodayDoses());
     toast.success(isRTL ? "تم تسجيل الجرعة ✓" : "Dose recorded ✓");
@@ -44,7 +46,9 @@ const HomePage = () => {
     }
   };
 
-  const handleMissed = (id: string) => {
+  const handleMissed = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
     markDoseMissed(id);
     setTodayDoses(generateTodayDoses());
   };
