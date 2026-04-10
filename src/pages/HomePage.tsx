@@ -203,14 +203,14 @@ const HomePage = () => {
                         {dose.status === "pending" ? (
                           <div className="flex items-center gap-2 flex-shrink-0">
                             <button
-                              onClick={() => handleTaken(dose.id)}
+                              onClick={(e) => handleTaken(dose.id, e)}
                               className="w-9 h-9 rounded-full bg-summary-taken flex items-center justify-center hover:opacity-80 transition-opacity"
                               aria-label={isRTL ? "تم أخذها" : "Mark taken"}
                             >
                               <Check className="w-5 h-5 text-summary-taken-foreground" />
                             </button>
                             <button
-                              onClick={() => handleMissed(dose.id)}
+                              onClick={(e) => handleMissed(dose.id, e)}
                               className="w-9 h-9 rounded-full bg-summary-missed flex items-center justify-center hover:opacity-80 transition-opacity"
                               aria-label={isRTL ? "فائتة" : "Mark missed"}
                             >
@@ -219,7 +219,7 @@ const HomePage = () => {
                           </div>
                         ) : dose.status === "missed" ? (
                           <button
-                            onClick={() => handleTaken(dose.id)}
+                            onClick={(e) => handleTaken(dose.id, e)}
                             className="text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0 bg-summary-missed text-summary-missed-foreground hover:bg-summary-taken hover:text-summary-taken-foreground transition-colors"
                             title={isRTL ? "اضغط لتسجيلها كمأخوذة" : "Click to mark as taken"}
                           >
