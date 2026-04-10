@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Heart, Save, Pencil } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
+import { Directory, Filesystem } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 import { store } from "@/lib/store";
 import { format } from "date-fns";
 import { jsPDF } from "jspdf";
@@ -38,7 +41,6 @@ const BloodPressurePage = () => {
     setDiastolic(String(r.diastolic));
     setHeartRate(String(r.heartRate));
     setPeriod(r.period);
-    // Scroll to form
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -69,6 +71,113 @@ const BloodPressurePage = () => {
     setReadings(store.getReadings());
   };
 
+  const handlePrintReport = async () => {
+    if (!readings.length) return;
+
+    const header = isRTL ? "تقرير ضغط الدم" : "Blood Pressure Report";
+    const tempDiv = document.createElement("div");
+    tempDiv.dir = isRTL ? "rtl" : "ltr";
+    tempDiv.style.position = "fixed";
+    tempDiv.style.left = "-99999px";
+    tempDiv.style.top = "0";
+    tempDiv.style.width = "794px";
+    tempDiv.style.background = "white";
+    tempDiv.style.color = "#111827";
+    tempDiv.style.padding = "32px";
+    tempDiv.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+
+    tempDiv.innerHTML = `
+      <h1 style="margin:0 0 8px;font-size:28px;">${header}</h1>
+      <p style="margin:0 0 24px;color:#6b7280;">${isRTL ? "سجل القراءات الطبية لضغط الدم" : "Medical blood pressure readings report"}</p>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        <thead>
+          <tr>
+            <th style="border:1px solid #d1d5db;background:#f3f4f6;padding:10px;text-align:${isRTL ? "right" : "left"}">${isRTL ? "التاريخ" : "Date"}</th>
+            <th style="border:1px solid #d1d5db;background:#f3f4f6;padding:10px;text-align:${isRTL ? "right" : "left"}">${isRTL ? "الوقت" : "Time"}</th>
+            <th style="border:1px solid #d1d5db;background:#f3f4f6;padding:10px;text-align:${isRTL ? "right" : "left"}">${isRTL ? "الانقباضي" : "Systolic"}</th>
+            <th style="border:1px solid #d1d5db;background:#f3f4f6;padding:10px;text-align:${isRTL ? "right" : "left"}">${isRTL ? "الانبساطي" : "Diastolic"}</th>
+            <th style="border:1px solid #d1d5db;background:#f3f4f6;padding:10px;text-align:${isRTL ? "right" : "left"}">${isRTL ? "النبض" : "Heart rate"}</th>
+            <th style="border:1px solid #d1d5db;background:#f3f4f6;padding:10px;text-align:${isRTL ? "right" : "left"}">${isRTL ? "الفترة" : "Period"}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${readings.map((r) => `
+            <tr>
+              <td style="border:1px solid #d1d5db;padding:10px;">${r.date}</td>
+              <td style="border:1px solid #d1d5db;padding:10px;">${r.time}</td>
+              <td style="border:1px solid #d1d5db;padding:10px;">${r.systolic}</td>
+              <td style="border:1px solid #d1d5db;padding:10px;">${r.diastolic}</td>
+              <td style="border:1px solid #d1d5db;padding:10px;">${r.heartRate}</td>
+              <td style="border:1px solid #d1d5db;padding:10px;">${r.period}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+
+    document.body.appendChild(tempDiv);
+
+    try {
+      const canvas = await html2canvas(tempDiv, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+      });
+
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const imgData = canvas.toDataURL("image/png");
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      const fileName = "blood-pressure-report.pdf";
+
+      if (Capacitor.isNativePlatform()) {
+        const pdfDataUri = pdf.output("datauristring");
+        const base64Data = pdfDataUri.split("base64,")[1];
+
+        if (!base64Data) {
+          throw new Error("Unable to encode PDF file");
+        }
+
+        const file = await Filesystem.writeFile({
+          path: fileName,
+          data: base64Data,
+          directory: Directory.Cache,
+          recursive: true,
+        });
+
+        await Share.share({
+          title: header,
+          dialogTitle: header,
+          url: file.uri,
+        });
+      } else {
+        pdf.save(fileName);
+      }
+    } catch (error) {
+      console.error("Failed to export blood pressure report", error);
+      window.alert(isRTL ? "تعذر إنشاء ملف التقرير الآن. حاول مرة أخرى." : "Unable to generate the report right now. Please try again.");
+    } finally {
+      document.body.removeChild(tempDiv);
+    }
+  };
+
   return (
     <div className="pb-28 overflow-x-hidden">
       <PageHeader title={t.bloodPressureMonitoring} showBack />
@@ -93,99 +202,7 @@ const BloodPressurePage = () => {
         )}
 
         {readings.length > 0 && (
-          <button onClick={async () => {
-            const header = isRTL ? "تقرير ضغط الدم" : "Blood Pressure Report";
-            const tempDiv = document.createElement("div");
-            tempDiv.dir = isRTL ? "rtl" : "ltr";
-            tempDiv.style.position = "fixed";
-            tempDiv.style.left = "-99999px";
-            tempDiv.style.top = "0";
-            tempDiv.style.width = "794px";
-            tempDiv.style.background = "white";
-            tempDiv.style.color = "#111827";
-            tempDiv.style.padding = "32px";
-            tempDiv.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-
-            tempDiv.innerHTML = `
-              <h1 style="margin:0 0 8px;font-size:28px;">${header}</h1>
-              <p style="margin:0 0 24px;color:#6b7280;">${isRTL ? "سجل القراءات الطبية لضغط الدم" : "Medical blood pressure readings report"}</p>
-              <table style="width:100%;border-collapse:collapse;font-size:14px;">
-                <thead>
-                  <tr>
-                    <th style="border:1px solid #d1d5db;background:#f3f4f6;padding:10px;text-align:${isRTL ? "right" : "left"}">${isRTL ? "التاريخ" : "Date"}</th>
-                    <th style="border:1px solid #d1d5db;background:#f3f4f6;padding:10px;text-align:${isRTL ? "right" : "left"}">${isRTL ? "الوقت" : "Time"}</th>
-                    <th style="border:1px solid #d1d5db;background:#f3f4f6;padding:10px;text-align:${isRTL ? "right" : "left"}">${isRTL ? "الانقباضي" : "Systolic"}</th>
-                    <th style="border:1px solid #d1d5db;background:#f3f4f6;padding:10px;text-align:${isRTL ? "right" : "left"}">${isRTL ? "الانبساطي" : "Diastolic"}</th>
-                    <th style="border:1px solid #d1d5db;background:#f3f4f6;padding:10px;text-align:${isRTL ? "right" : "left"}">${isRTL ? "النبض" : "Heart rate"}</th>
-                    <th style="border:1px solid #d1d5db;background:#f3f4f6;padding:10px;text-align:${isRTL ? "right" : "left"}">${isRTL ? "الفترة" : "Period"}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${readings.map((r) => `
-                    <tr>
-                      <td style="border:1px solid #d1d5db;padding:10px;">${r.date}</td>
-                      <td style="border:1px solid #d1d5db;padding:10px;">${r.time}</td>
-                      <td style="border:1px solid #d1d5db;padding:10px;">${r.systolic}</td>
-                      <td style="border:1px solid #d1d5db;padding:10px;">${r.diastolic}</td>
-                      <td style="border:1px solid #d1d5db;padding:10px;">${r.heartRate}</td>
-                      <td style="border:1px solid #d1d5db;padding:10px;">${r.period}</td>
-                    </tr>
-                  `).join("")}
-                </tbody>
-              </table>
-            `;
-
-            document.body.appendChild(tempDiv);
-
-            try {
-              const canvas = await html2canvas(tempDiv, {
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                backgroundColor: "#ffffff",
-              });
-
-              const pdf = new jsPDF("p", "mm", "a4");
-              const pageWidth = 210;
-              const pageHeight = 297;
-              const imgWidth = pageWidth;
-              const imgHeight = (canvas.height * imgWidth) / canvas.width;
-              const imgData = canvas.toDataURL("image/png");
-
-              let heightLeft = imgHeight;
-              let position = 0;
-
-              pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-              heightLeft -= pageHeight;
-
-              while (heightLeft > 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-              }
-
-              // Use base64 data URI to avoid blob URL issues on iOS Capacitor
-              const pdfDataUri = pdf.output('datauristring');
-              const newWindow = window.open('', '_blank');
-              if (newWindow) {
-                newWindow.document.write(
-                  `<html><head><title>${isRTL ? "تقرير ضغط الدم" : "Blood Pressure Report"}</title></head>` +
-                  `<body style="margin:0"><iframe src="${pdfDataUri}" style="width:100%;height:100%;border:none;"></iframe></body></html>`
-                );
-              } else {
-                // Fallback: create a download link
-                const link = document.createElement('a');
-                link.href = pdfDataUri;
-                link.download = isRTL ? "تقرير-ضغط-الدم.pdf" : "blood-pressure-report.pdf";
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-              }
-            } finally {
-              document.body.removeChild(tempDiv);
-            }
-          }} className="w-full py-3 rounded-2xl bg-info text-info-foreground font-semibold text-center print-hide">
+          <button onClick={handlePrintReport} className="w-full py-3 rounded-2xl bg-info text-info-foreground font-semibold text-center print-hide">
             🖨️ {t.printReport}
           </button>
         )}
