@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { FlaskConical, X, AlertTriangle, CheckCircle2, ArrowDown, ArrowUp, Plus, Trash2, Search, Image, ZoomIn, Printer, Eye, EyeOff, Pencil } from "lucide-react";
 import { store } from "@/lib/store";
 import { format } from "date-fns";
@@ -16,6 +16,130 @@ interface ManualEntry {
   value: string;
   isCustom: boolean;
 }
+
+const FullscreenViewer = ({ src, onClose, isRTL }: { src: string; onClose: () => void; isRTL: boolean }) => {
+  const [scale, setScale] = useState(1);
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const lastDist = useRef(0);
+  const lastCenter = useRef({ x: 0, y: 0 });
+  const dragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const lastTap = useRef(0);
+
+  const handleDoubleTap = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    const now = Date.now();
+    if (now - lastTap.current < 300) {
+      if (scale > 1) {
+        setScale(1);
+        setTranslate({ x: 0, y: 0 });
+      } else {
+        setScale(3);
+      }
+    }
+    lastTap.current = now;
+  }, [scale]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastDist.current = Math.sqrt(dx * dx + dy * dy);
+      lastCenter.current = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+      };
+    } else if (e.touches.length === 1 && scale > 1) {
+      dragging.current = true;
+      dragStart.current = { x: e.touches[0].clientX - translate.x, y: e.touches[0].clientY - translate.y };
+    }
+  }, [scale, translate]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (lastDist.current > 0) {
+        const newScale = Math.min(Math.max(scale * (dist / lastDist.current), 1), 6);
+        setScale(newScale);
+        if (newScale <= 1) setTranslate({ x: 0, y: 0 });
+      }
+      lastDist.current = dist;
+    } else if (e.touches.length === 1 && dragging.current && scale > 1) {
+      setTranslate({
+        x: e.touches[0].clientX - dragStart.current.x,
+        y: e.touches[0].clientY - dragStart.current.y,
+      });
+    }
+  }, [scale]);
+
+  const handleTouchEnd = useCallback(() => {
+    lastDist.current = 0;
+    dragging.current = false;
+  }, []);
+
+  const zoomIn = () => setScale((s) => Math.min(s + 0.5, 6));
+  const zoomOut = () => {
+    setScale((s) => {
+      const ns = Math.max(s - 0.5, 1);
+      if (ns <= 1) setTranslate({ x: 0, y: 0 });
+      return ns;
+    });
+  };
+  const resetZoom = () => { setScale(1); setTranslate({ x: 0, y: 0 }); };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black flex flex-col" onClick={onClose}>
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-4 py-3 bg-black/80 z-10" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="bg-white/20 text-white rounded-full p-2">
+          <X className="w-5 h-5" />
+        </button>
+        <div className="flex items-center gap-1">
+          <button onClick={zoomOut} className="bg-white/20 text-white rounded-full p-2 text-sm font-bold w-9 h-9 flex items-center justify-center">−</button>
+          <button onClick={resetZoom} className="bg-white/20 text-white rounded-full px-3 py-1.5 text-xs font-bold min-w-[50px]">
+            {Math.round(scale * 100)}%
+          </button>
+          <button onClick={zoomIn} className="bg-white/20 text-white rounded-full p-2 text-sm font-bold w-9 h-9 flex items-center justify-center">+</button>
+        </div>
+      </div>
+      {/* Image area */}
+      <div
+        className="flex-1 overflow-hidden flex items-center justify-center"
+        onClick={(e) => { if (scale <= 1) onClose(); else e.stopPropagation(); }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <img
+          src={src}
+          alt="Lab test"
+          className="select-none"
+          style={{
+            transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
+            transition: dragging.current ? 'none' : 'transform 0.2s ease',
+            maxWidth: '100%',
+            maxHeight: '100%',
+            objectFit: 'contain',
+            touchAction: 'none',
+          }}
+          onClick={handleDoubleTap}
+          draggable={false}
+        />
+      </div>
+      {/* Hint */}
+      {scale <= 1 && (
+        <div className="absolute bottom-8 left-0 right-0 text-center">
+          <span className="bg-white/20 text-white text-xs px-4 py-2 rounded-full backdrop-blur-sm">
+            {isRTL ? "انقر مرتين للتكبير • اسحب بإصبعين" : "Double-tap to zoom • Pinch to zoom"}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const LabTestsPage = () => {
   const { t, isRTL } = useLanguage();
@@ -437,23 +561,11 @@ const LabTestsPage = () => {
       <PageHeader title={t.labTests} showBack onAdd={() => setShowForm(true)} />
 
       {fullscreenImage && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-          onClick={() => setFullscreenImage(null)}
-        >
-          <button
-            onClick={() => setFullscreenImage(null)}
-            className="absolute top-4 right-4 bg-white/20 text-white rounded-full p-2 hover:bg-white/30 z-10"
-          >
-            <X className="w-6 h-6" />
-          </button>
-          <img
-            src={fullscreenImage}
-            alt="Lab test"
-            className="max-w-full max-h-full object-contain rounded-lg"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
+        <FullscreenViewer
+          src={fullscreenImage}
+          onClose={() => setFullscreenImage(null)}
+          isRTL={isRTL}
+        />
       )}
 
       {tests.length === 0 && !showForm ? (
