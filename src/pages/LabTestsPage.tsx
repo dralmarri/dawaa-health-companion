@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { FlaskConical, X, AlertTriangle, CheckCircle2, ArrowDown, ArrowUp, Plus, Trash2, Search, Image, ZoomIn, Printer, Eye, EyeOff, Pencil } from "lucide-react";
 import { store } from "@/lib/store";
 import { format } from "date-fns";
