@@ -238,13 +238,7 @@ const AddMedicationPage = () => {
     // If editing, remove old dose records for today so regeneration uses new times
     if (editingMedication) {
       const today = new Date().toISOString().slice(0, 10);
-      const allDoses = store.getDoseRecords();
-      const cleaned = allDoses.filter(
-        d => !(d.medicationId === med.id && d.date === today)
-      );
-      if (cleaned.length < allDoses.length) {
-        await store._setDoseRecords(cleaned);
-      }
+      await store.deleteDosesForMedDate(med.id, today);
     }
 
     await scheduleMedicationNotifications();

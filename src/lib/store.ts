@@ -138,6 +138,14 @@ export const store = {
     await setCache(KEYS.doseRecords, records);
   },
 
+  /** Delete all dose records for a specific medication on a specific date */
+  deleteDosesForMedDate: async (medicationId: string, date: string) => {
+    const all = store.getDoseRecords();
+    const cleaned = all.filter(d => !(d.medicationId === medicationId && d.date === date));
+    await setCache(KEYS.doseRecords, cleaned);
+    if (currentUid) await cloudStore.deleteDoseRecordsForMedDate(currentUid, medicationId, date);
+  },
+
   getSettings: (): AppSettings =>
     getCache(KEYS.settings, defaultSettings),
 
