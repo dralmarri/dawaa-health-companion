@@ -234,6 +234,19 @@ const AddMedicationPage = () => {
       createdAt: editingMedication?.createdAt || new Date().toISOString(),
     };
     await store.saveMedication(med);
+
+    // If editing, remove old dose records for today so regeneration uses new times
+    if (editingMedication) {
+      const today = new Date().toISOString().slice(0, 10);
+      const allDoses = store.getDoseRecords();
+      const cleaned = allDoses.filter(
+        d => !(d.medicationId === med.id && d.date === today && d.status === 'pending')
+      );
+      if (cleaned.length < allDoses.length) {
+        await store._setDoseRecords(cleaned);
+      }
+    }
+
     await scheduleMedicationNotifications();
     navigate("/medications");
   };
@@ -430,6 +443,7 @@ const AddMedicationPage = () => {
                   min={0}
                   value={stock}
                   onChange={(e) => setStock(Number(e.target.value))}
+                  onFocus={(e) => e.target.select()}
                   className="flex-1 px-4 py-3 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
                 <span className="text-sm text-muted-foreground px-3 py-2 bg-accent rounded-lg">{formsMap[form]}</span>
