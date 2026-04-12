@@ -240,7 +240,7 @@ const AddMedicationPage = () => {
       const today = new Date().toISOString().slice(0, 10);
       const allDoses = store.getDoseRecords();
       const cleaned = allDoses.filter(
-        d => !(d.medicationId === med.id && d.date === today && d.status === 'pending')
+        d => !(d.medicationId === med.id && d.date === today)
       );
       if (cleaned.length < allDoses.length) {
         await store._setDoseRecords(cleaned);
