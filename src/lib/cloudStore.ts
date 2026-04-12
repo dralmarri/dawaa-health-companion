@@ -149,6 +149,9 @@ export const cloudStore = {
   saveDoseRecord: async (uid: string, d: DoseRecord) => {
     await supabase.from("dose_records").upsert(toDoseRow(uid, d));
   },
+  deleteDoseRecordsForMedDate: async (uid: string, medicationId: string, date: string) => {
+    await supabase.from("dose_records").delete().eq("user_id", uid).eq("medication_id", medicationId).eq("date", date);
+  },
 
   // Settings
   getSettings: async (uid: string): Promise<AppSettings | null> => {
