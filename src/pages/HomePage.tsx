@@ -30,10 +30,10 @@ const HomePage = () => {
   const taken = todayDoses.filter((d) => d.status === "taken").length;
   const missed = todayDoses.filter((d) => d.status === "missed").length;
 
-  const handleTaken = (id: string, e: React.MouseEvent) => {
+  const handleTaken = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    const { lowStockMed } = markDoseTaken(id);
+    const { lowStockMed } = await markDoseTaken(id);
     setTodayDoses(generateTodayDoses());
     toast.success(isRTL ? "تم تسجيل الجرعة ✓" : "Dose recorded ✓");
     if (lowStockMed) {
@@ -46,10 +46,10 @@ const HomePage = () => {
     }
   };
 
-  const handleMissed = (id: string, e: React.MouseEvent) => {
+  const handleMissed = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    markDoseMissed(id);
+    await markDoseMissed(id);
     setTodayDoses(generateTodayDoses());
   };
 
