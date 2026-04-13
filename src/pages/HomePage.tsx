@@ -184,7 +184,10 @@ const HomePage = () => {
                     const med = store.getMedications().find(m => m.id === dose.medicationId);
                     return (
                       <div key={dose.id} className="flex items-center justify-between p-4 pt-3">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div
+                          className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
+                          onClick={() => navigate(`/medications/add?edit=${dose.medicationId}`)}
+                        >
                           {med?.imageUrl ? (
                             <img src={med.imageUrl} alt={dose.medicationName} className="w-10 h-10 rounded-lg object-cover border border-border flex-shrink-0" />
                           ) : (
