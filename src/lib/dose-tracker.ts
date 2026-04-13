@@ -156,20 +156,20 @@ export function generateTodayDoses(): DoseRecord[] {
 /**
  * Mark a dose as taken
  */
-export function markDoseTaken(recordId: string): { lowStockMed?: { name: string; stock: number; percent: number } } {
+export async function markDoseTaken(recordId: string): Promise<{ lowStockMed?: { name: string; stock: number; percent: number } }> {
   const records = store.getDoseRecords();
   const record = records.find(r => r.id === recordId);
   let lowStockMed: { name: string; stock: number; percent: number } | undefined;
   if (record) {
     record.status = 'taken';
     record.takenAt = format(new Date(), 'HH:mm');
-    store.saveDoseRecord(record);
+    await store.saveDoseRecord(record);
 
     // Decrease stock
     const med = store.getMedications().find(m => m.id === record.medicationId);
     if (med && med.stock > 0) {
       med.stock -= 1;
-      store.saveMedication(med);
+      await store.saveMedication(med);
 
       const initial = med.initialStock || med.stock + 1;
       const percent = Math.round((med.stock / initial) * 100);
@@ -184,11 +184,11 @@ export function markDoseTaken(recordId: string): { lowStockMed?: { name: string;
 /**
  * Mark a dose as missed
  */
-export function markDoseMissed(recordId: string) {
+export async function markDoseMissed(recordId: string) {
   const records = store.getDoseRecords();
   const record = records.find(r => r.id === recordId);
   if (record) {
     record.status = 'missed';
-    store.saveDoseRecord(record);
+    await store.saveDoseRecord(record);
   }
 }
