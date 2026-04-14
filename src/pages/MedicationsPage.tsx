@@ -54,8 +54,16 @@ const MedicationsPage = () => {
                         {t.times}: {med.times.join(", ")} · {t.stock}:{" "}
                         <span className={`text-base font-bold ${
                           (() => {
-                            const initial = med.initialStock || med.stock;
-                            const percent = initial > 0 ? med.stock / initial : 1;
+                            // Calculate 2-month supply based on frequency
+                            let dosesPerCycle = med.times.length;
+                            let twoMonthSupply: number;
+                            switch (med.frequency) {
+                              case "Every week": twoMonthSupply = dosesPerCycle * 8; break;
+                              case "Every 2 weeks": twoMonthSupply = dosesPerCycle * 4; break;
+                              case "Every month": twoMonthSupply = dosesPerCycle * 2; break;
+                              default: twoMonthSupply = dosesPerCycle * 60; break; // daily frequencies
+                            }
+                            const percent = twoMonthSupply > 0 ? med.stock / twoMonthSupply : 1;
                             if (percent <= 0.2) return "text-destructive";
                             if (percent <= 0.5) return "text-warning";
                             return "text-summary-taken-foreground";
