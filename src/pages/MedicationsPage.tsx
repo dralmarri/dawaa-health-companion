@@ -51,7 +51,18 @@ const MedicationsPage = () => {
                         {med.form} · {med.dosage} · {med.frequency}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {t.times}: {med.times.join(", ")} · {t.stock}: {med.stock}
+                        {t.times}: {med.times.join(", ")} · {t.stock}:{" "}
+                        <span className={`text-base font-bold ${
+                          (() => {
+                            const initial = med.initialStock || med.stock;
+                            const percent = initial > 0 ? med.stock / initial : 1;
+                            if (percent <= 0.2) return "text-destructive";
+                            if (percent <= 0.5) return "text-warning";
+                            return "text-summary-taken-foreground";
+                          })()
+                        }`}>
+                          {med.stock}
+                        </span>
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
