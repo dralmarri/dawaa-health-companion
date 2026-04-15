@@ -27,10 +27,13 @@ const BloodPressurePage = () => {
   const avgDia = last7.length ? Math.round(last7.reduce((s, r) => s + r.diastolic, 0) / last7.length) : 0;
   const avgHr = last7.length ? Math.round(last7.reduce((s, r) => s + r.heartRate, 0) / last7.length) : 0;
 
-  const getCategory = (sys: number) => {
-    if (sys < 120) return { label: t.normal, color: "text-success" };
-    if (sys < 130) return { label: t.elevated, color: "text-warning" };
-    return { label: t.high, color: "text-destructive" };
+  const getCategory = (sys: number, dia: number) => {
+    if (sys < 90 || dia < 60) return { label: isRTL ? "منخفض" : "Low", color: "text-info", emoji: "🔵" };
+    if (sys < 120 && dia < 80) return { label: isRTL ? "طبيعي" : "Normal", color: "text-success", emoji: "🟢" };
+    if (sys < 130 && dia < 80) return { label: isRTL ? "مرتفع قليلاً" : "Elevated", color: "text-warning", emoji: "🟡" };
+    if (sys < 140 || dia < 90) return { label: isRTL ? "ضغط مرتفع - مرحلة 1" : "High - Stage 1", color: "text-warning", emoji: "🟠" };
+    if (sys < 180 || dia < 120) return { label: isRTL ? "ضغط مرتفع - مرحلة 2" : "High - Stage 2", color: "text-destructive", emoji: "🔴" };
+    return { label: isRTL ? "أزمة ضغط! راجع الطبيب فوراً" : "Hypertensive Crisis!", color: "text-destructive", emoji: "🚨" };
   };
 
   const periodLabels: Record<string, string> = { Morning: t.morning, Evening: t.evening };
@@ -189,7 +192,9 @@ const BloodPressurePage = () => {
                 <p className="text-xs sm:text-sm text-muted-foreground">{t.latestReading}</p>
                 <p className="text-2xl sm:text-3xl font-bold text-foreground">{latestReading.systolic}/{latestReading.diastolic}</p>
                 <p className="text-sm text-heart">♥ {latestReading.heartRate} bpm</p>
-                <span className={`text-sm font-medium ${getCategory(latestReading.systolic).color}`}>{getCategory(latestReading.systolic).label}</span>
+                <span className={`text-sm font-medium ${getCategory(latestReading.systolic, latestReading.diastolic).color}`}>
+                  {getCategory(latestReading.systolic, latestReading.diastolic).emoji} {getCategory(latestReading.systolic, latestReading.diastolic).label}
+                </span>
               </div>
               <div className="border-s border-border ps-3 flex-1 min-w-0">
                 <p className="text-xs sm:text-sm text-muted-foreground">{t.averageOfLast} {last7.length} {t.readings}</p>
@@ -303,6 +308,9 @@ const BloodPressurePage = () => {
                   <div className="text-end">
                     <p className="font-bold text-foreground text-lg">{r.systolic}<span className="text-muted-foreground font-normal">/{r.diastolic}</span></p>
                     <p className="text-sm text-heart">♥ {r.heartRate} bpm</p>
+                    <span className={`text-xs font-semibold ${getCategory(r.systolic, r.diastolic).color}`}>
+                      {getCategory(r.systolic, r.diastolic).emoji} {getCategory(r.systolic, r.diastolic).label}
+                    </span>
                   </div>
                   <div className="flex flex-col gap-1 ms-2">
                     <button onClick={() => openEdit(r)} className="p-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20">
