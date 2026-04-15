@@ -51,27 +51,33 @@ const MedicationsPage = () => {
                         {med.form} · {med.dosage} · {med.frequency}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {t.times}: {med.times.join(", ")} · {t.stock}:{" "}
-                        <span className={`text-base font-bold ${
-                          (() => {
-                            // Calculate 2-month supply based on frequency
-                            let dosesPerCycle = med.times.length;
-                            let twoMonthSupply: number;
-                            switch (med.frequency) {
-                              case "Every week": twoMonthSupply = dosesPerCycle * 8; break;
-                              case "Every 2 weeks": twoMonthSupply = dosesPerCycle * 4; break;
-                              case "Every month": twoMonthSupply = dosesPerCycle * 2; break;
-                              default: twoMonthSupply = dosesPerCycle * 60; break; // daily frequencies
-                            }
-                            const percent = twoMonthSupply > 0 ? med.stock / twoMonthSupply : 1;
-                            if (percent <= 0.2) return "text-destructive";
-                            if (percent <= 0.5) return "text-warning";
-                            return "text-summary-taken-foreground";
-                          })()
-                        }`}>
-                          {med.stock}
-                        </span>
+                        {t.times}: {med.times.join(", ")}
                       </p>
+                      {(() => {
+                        let dosesPerCycle = med.times.length;
+                        let twoMonthSupply: number;
+                        switch (med.frequency) {
+                          case "Every week": twoMonthSupply = dosesPerCycle * 8; break;
+                          case "Every 2 weeks": twoMonthSupply = dosesPerCycle * 4; break;
+                          case "Every month": twoMonthSupply = dosesPerCycle * 2; break;
+                          default: twoMonthSupply = dosesPerCycle * 60; break;
+                        }
+                        const percent = twoMonthSupply > 0 ? Math.min(med.stock / twoMonthSupply, 1) : 1;
+                        const pct100 = Math.round(percent * 100);
+                        const colorClass = percent <= 0.2 ? "text-destructive" : percent <= 0.5 ? "text-warning" : "text-success";
+                        const barColor = percent <= 0.2 ? "bg-destructive" : percent <= 0.5 ? "bg-warning" : "bg-success";
+                        return (
+                          <div className="mt-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs text-muted-foreground">{t.stock}</span>
+                              <span className={`text-sm font-bold ${colorClass}`}>{med.stock} ({pct100}%)</span>
+                            </div>
+                            <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                              <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct100}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button
