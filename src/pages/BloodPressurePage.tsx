@@ -27,10 +27,13 @@ const BloodPressurePage = () => {
   const avgDia = last7.length ? Math.round(last7.reduce((s, r) => s + r.diastolic, 0) / last7.length) : 0;
   const avgHr = last7.length ? Math.round(last7.reduce((s, r) => s + r.heartRate, 0) / last7.length) : 0;
 
-  const getCategory = (sys: number) => {
-    if (sys < 120) return { label: t.normal, color: "text-success" };
-    if (sys < 130) return { label: t.elevated, color: "text-warning" };
-    return { label: t.high, color: "text-destructive" };
+  const getCategory = (sys: number, dia: number) => {
+    if (sys < 90 || dia < 60) return { label: isRTL ? "منخفض" : "Low", color: "text-info", emoji: "🔵" };
+    if (sys < 120 && dia < 80) return { label: isRTL ? "طبيعي" : "Normal", color: "text-success", emoji: "🟢" };
+    if (sys < 130 && dia < 80) return { label: isRTL ? "مرتفع قليلاً" : "Elevated", color: "text-warning", emoji: "🟡" };
+    if (sys < 140 || dia < 90) return { label: isRTL ? "ضغط مرتفع - مرحلة 1" : "High - Stage 1", color: "text-warning", emoji: "🟠" };
+    if (sys < 180 || dia < 120) return { label: isRTL ? "ضغط مرتفع - مرحلة 2" : "High - Stage 2", color: "text-destructive", emoji: "🔴" };
+    return { label: isRTL ? "أزمة ضغط! راجع الطبيب فوراً" : "Hypertensive Crisis!", color: "text-destructive", emoji: "🚨" };
   };
 
   const periodLabels: Record<string, string> = { Morning: t.morning, Evening: t.evening };
