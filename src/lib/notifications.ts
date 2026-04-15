@@ -1,6 +1,6 @@
 import { LocalNotifications, PermissionStatus } from '@capacitor/local-notifications';
 import { store } from './store';
-import type { Medication } from '@/types';
+import type { Medication, Appointment } from '@/types';
 
 let scheduledIds: number[] = [];
 let listenersRegistered = false;
