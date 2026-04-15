@@ -80,6 +80,41 @@ const MedicationsPage = () => {
                           </div>
                         );
                       })()}
+                      {(() => {
+                        // Show next dose date for non-daily medications
+                        const nonDaily = ['Every week', 'Every 2 weeks', 'Every month'];
+                        if (!nonDaily.includes(med.frequency) || !med.startDate) return null;
+
+                        const start = parseISO(med.startDate);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+
+                        let next = new Date(start);
+                        next.setHours(0, 0, 0, 0);
+
+                        if (med.frequency === 'Every week') {
+                          while (next <= today) next = addWeeks(next, 1);
+                        } else if (med.frequency === 'Every 2 weeks') {
+                          while (next <= today) next = addWeeks(next, 2);
+                        } else if (med.frequency === 'Every month') {
+                          while (next <= today) next = addMonths(next, 1);
+                        }
+
+                        const daysLeft = differenceInDays(next, today);
+                        const dateStr = format(next, 'dd MMM yyyy', { locale: isRTL ? ar : undefined });
+                        const daysLabel = isRTL
+                          ? (daysLeft === 0 ? "اليوم" : daysLeft === 1 ? "غداً" : `بعد ${daysLeft} يوم`)
+                          : (daysLeft === 0 ? "Today" : daysLeft === 1 ? "Tomorrow" : `In ${daysLeft} days`);
+
+                        return (
+                          <div className="mt-2 flex items-center gap-1.5 text-xs">
+                            <CalendarClock className="w-3.5 h-3.5 text-primary" />
+                            <span className="text-muted-foreground">{isRTL ? "الجرعة القادمة:" : "Next dose:"}</span>
+                            <span className="font-semibold text-primary">{dateStr}</span>
+                            <span className={`font-medium ${daysLeft <= 1 ? "text-warning" : "text-muted-foreground"}`}>({daysLabel})</span>
+                          </div>
+                        );
+                      })()}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button
