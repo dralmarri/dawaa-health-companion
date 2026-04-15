@@ -192,7 +192,9 @@ const BloodPressurePage = () => {
                 <p className="text-xs sm:text-sm text-muted-foreground">{t.latestReading}</p>
                 <p className="text-2xl sm:text-3xl font-bold text-foreground">{latestReading.systolic}/{latestReading.diastolic}</p>
                 <p className="text-sm text-heart">♥ {latestReading.heartRate} bpm</p>
-                <span className={`text-sm font-medium ${getCategory(latestReading.systolic).color}`}>{getCategory(latestReading.systolic).label}</span>
+                <span className={`text-sm font-medium ${getCategory(latestReading.systolic, latestReading.diastolic).color}`}>
+                  {getCategory(latestReading.systolic, latestReading.diastolic).emoji} {getCategory(latestReading.systolic, latestReading.diastolic).label}
+                </span>
               </div>
               <div className="border-s border-border ps-3 flex-1 min-w-0">
                 <p className="text-xs sm:text-sm text-muted-foreground">{t.averageOfLast} {last7.length} {t.readings}</p>
@@ -306,6 +308,9 @@ const BloodPressurePage = () => {
                   <div className="text-end">
                     <p className="font-bold text-foreground text-lg">{r.systolic}<span className="text-muted-foreground font-normal">/{r.diastolic}</span></p>
                     <p className="text-sm text-heart">♥ {r.heartRate} bpm</p>
+                    <span className={`text-xs font-semibold ${getCategory(r.systolic, r.diastolic).color}`}>
+                      {getCategory(r.systolic, r.diastolic).emoji} {getCategory(r.systolic, r.diastolic).label}
+                    </span>
                   </div>
                   <div className="flex flex-col gap-1 ms-2">
                     <button onClick={() => openEdit(r)} className="p-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20">
