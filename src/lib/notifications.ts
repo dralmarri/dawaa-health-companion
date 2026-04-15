@@ -1,6 +1,6 @@
 import { LocalNotifications, PermissionStatus } from '@capacitor/local-notifications';
 import { store } from './store';
-import type { Medication } from '@/types';
+import type { Medication, Appointment } from '@/types';
 
 let scheduledIds: number[] = [];
 let listenersRegistered = false;
@@ -137,10 +137,39 @@ export async function scheduleMedicationNotifications() {
     });
   });
 
-  // Low stock alert — daily at 9 AM
-  const lowStockMeds = medications.filter(med =>
-    med.stock > 0 && med.stock <= 5
-  );
+  // === Blood Pressure Reminders (10 AM and 9 PM daily) ===
+  const bpTimes = [{ hour: 10, min: 0, id: 9990 }, { hour: 21, min: 0, id: 9991 }];
+  bpTimes.forEach(({ hour, min, id }) => {
+    const bpTime = new Date();
+    bpTime.setHours(hour, min, 0, 0);
+    if (bpTime.getTime() <= now.getTime()) {
+      bpTime.setDate(bpTime.getDate() + 1);
+    }
+    scheduledIds.push(id);
+    notifications.push({
+      id,
+      title: isArabic ? '🩺 تذكير قياس الضغط' : '🩺 Blood Pressure Reminder',
+      body: isArabic
+        ? `حان وقت قياس ضغط الدم (${hour === 10 ? 'الصباح' : 'المساء'})`
+        : `Time to measure your blood pressure (${hour === 10 ? 'Morning' : 'Evening'})`,
+      schedule: { at: bpTime, repeats: true, every: 'day' as const, allowWhileIdle: true },
+      sound: 'default',
+      smallIcon: 'ic_stat_icon_config_sample',
+    });
+  });
+
+  // === Low Stock Alert (≤20% of 2-month supply) — daily at 9 AM ===
+  const lowStockMeds = medications.filter(med => {
+    const timesPerDay = med.times.length || 1;
+    let twoMonthSupply: number;
+    switch (med.frequency) {
+      case 'weekly': twoMonthSupply = timesPerDay * 8; break;
+      case 'every_two_weeks': twoMonthSupply = timesPerDay * 4; break;
+      case 'monthly': twoMonthSupply = timesPerDay * 2; break;
+      default: twoMonthSupply = timesPerDay * 60; break;
+    }
+    return med.stock > 0 && (med.stock / twoMonthSupply) <= 0.2;
+  });
 
   if (lowStockMeds.length > 0) {
     const stockTime = new Date();
@@ -157,13 +186,61 @@ export async function scheduleMedicationNotifications() {
       id: stockId,
       title: isArabic ? '⚠️ تنبيه المخزون' : '⚠️ Stock Alert',
       body: isArabic
-        ? `مخزون منخفض: ${names}`
-        : `Low stock: ${names}`,
+        ? `مخزون منخفض (أقل من 20%): ${names}`
+        : `Low stock (below 20%): ${names}`,
       schedule: { at: stockTime, repeats: true, every: 'day' as const, allowWhileIdle: true },
       sound: 'default',
       smallIcon: 'ic_stat_icon_config_sample',
     });
   }
+
+  // === Appointment Reminders (1 day before + 2 hours before) ===
+  const appointments: Appointment[] = store.getAppointments?.() || [];
+  const upcomingAppts = appointments.filter(a => !a.completed);
+
+  upcomingAppts.forEach((appt) => {
+    const [aH, aM] = appt.time.split(':').map(Number);
+    if (isNaN(aH) || isNaN(aM)) return;
+
+    const apptDate = new Date(appt.date);
+    apptDate.setHours(aH, aM, 0, 0);
+
+    // 1 day before
+    const dayBefore = new Date(apptDate.getTime() - 24 * 60 * 60 * 1000);
+    if (dayBefore.getTime() > now.getTime()) {
+      const dayId = stableId(appt.id, 'day-before');
+      scheduledIds.push(dayId);
+      const doctorInfo = appt.doctorName ? (isArabic ? ` - د. ${appt.doctorName}` : ` - Dr. ${appt.doctorName}`) : '';
+      notifications.push({
+        id: dayId,
+        title: isArabic ? '📅 تذكير بموعد طبي غداً' : '📅 Appointment Tomorrow',
+        body: isArabic
+          ? `لديك موعد ${appt.specialty}${doctorInfo} غداً الساعة ${appt.time}`
+          : `You have a ${appt.specialty}${doctorInfo} appointment tomorrow at ${appt.time}`,
+        schedule: { at: dayBefore, repeats: false, every: 'day' as const, allowWhileIdle: true },
+        sound: 'default',
+        smallIcon: 'ic_stat_icon_config_sample',
+      });
+    }
+
+    // 2 hours before
+    const twoHoursBefore = new Date(apptDate.getTime() - 2 * 60 * 60 * 1000);
+    if (twoHoursBefore.getTime() > now.getTime()) {
+      const hourId = stableId(appt.id, '2h-before');
+      scheduledIds.push(hourId);
+      const doctorInfo = appt.doctorName ? (isArabic ? ` - د. ${appt.doctorName}` : ` - Dr. ${appt.doctorName}`) : '';
+      notifications.push({
+        id: hourId,
+        title: isArabic ? '📅 موعدك بعد ساعتين' : '📅 Appointment in 2 Hours',
+        body: isArabic
+          ? `موعد ${appt.specialty}${doctorInfo} الساعة ${appt.time}`
+          : `${appt.specialty}${doctorInfo} appointment at ${appt.time}`,
+        schedule: { at: twoHoursBefore, repeats: false, every: 'day' as const, allowWhileIdle: true },
+        sound: 'default',
+        smallIcon: 'ic_stat_icon_config_sample',
+      });
+    }
+  });
 
   // Daily summary
   if (settings.dailySummary && medications.length > 0) {
