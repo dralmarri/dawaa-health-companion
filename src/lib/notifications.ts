@@ -100,7 +100,7 @@ export async function scheduleMedicationNotifications() {
     id: number;
     title: string;
     body: string;
-    schedule: { at: Date; repeats: boolean; every: 'day'; allowWhileIdle: boolean };
+    schedule: any;
     sound: string;
     smallIcon: string;
   }> = [];
