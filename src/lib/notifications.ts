@@ -203,7 +203,7 @@ export async function scheduleMedicationNotifications() {
         body: isArabic
           ? `لديك موعد ${appt.specialty}${doctorInfo} غداً الساعة ${appt.time}`
           : `You have a ${appt.specialty}${doctorInfo} appointment tomorrow at ${appt.time}`,
-        schedule: { at: dayBefore, repeats: false, every: 'day' as const, allowWhileIdle: true },
+        schedule: { at: dayBefore, allowWhileIdle: true },
         sound: 'default',
         smallIcon: 'ic_stat_icon_config_sample',
       });
@@ -221,7 +221,7 @@ export async function scheduleMedicationNotifications() {
         body: isArabic
           ? `موعد ${appt.specialty}${doctorInfo} الساعة ${appt.time}`
           : `${appt.specialty}${doctorInfo} appointment at ${appt.time}`,
-        schedule: { at: twoHoursBefore, repeats: false, every: 'day' as const, allowWhileIdle: true },
+        schedule: { at: twoHoursBefore, allowWhileIdle: true },
         sound: 'default',
         smallIcon: 'ic_stat_icon_config_sample',
       });
