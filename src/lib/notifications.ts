@@ -164,12 +164,6 @@ export async function scheduleMedicationNotifications() {
   });
 
   if (lowStockMeds.length > 0) {
-    const stockTime = new Date();
-    stockTime.setHours(9, 0, 0, 0);
-    if (stockTime.getTime() <= now.getTime()) {
-      stockTime.setDate(stockTime.getDate() + 1);
-    }
-
     const stockId = 9999;
     scheduledIds.push(stockId);
     const names = lowStockMeds.map(m => m.name).join(isArabic ? '، ' : ', ');
@@ -180,7 +174,7 @@ export async function scheduleMedicationNotifications() {
       body: isArabic
         ? `مخزون منخفض (أقل من 20%): ${names}`
         : `Low stock (below 20%): ${names}`,
-      schedule: { at: stockTime, repeats: true, every: 'day' as const, allowWhileIdle: true },
+      schedule: { on: { hour: 9, minute: 0 }, allowWhileIdle: true },
       sound: 'default',
       smallIcon: 'ic_stat_icon_config_sample',
     });
