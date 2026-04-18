@@ -283,3 +283,27 @@ export async function startNotificationLoop() {
   await registerListeners();
   await scheduleMedicationNotifications();
 }
+
+/**
+ * Cancel today's notification for a specific medication+time.
+ * The daily repeating notification will be re-scheduled for tomorrow automatically
+ * via the next call to scheduleMedicationNotifications (e.g. on app reload).
+ */
+export async function cancelDoseNotification(medicationId: string, timeStr: string) {
+  try {
+    const id = stableId(medicationId, timeStr);
+    await LocalNotifications.cancel({ notifications: [{ id }] });
+    // Remove from tracked ids so it gets re-armed on next schedule
+    scheduledIds = scheduledIds.filter(x => x !== id);
+    console.log(`[Notifications] Canceled dose reminder for ${medicationId} @ ${timeStr}`);
+  } catch (e) {
+    console.warn('[Notifications] Failed to cancel dose notification', e);
+  }
+}
+
+/**
+ * Re-schedule a single dose notification (used when undoing a taken dose).
+ */
+export async function rescheduleAllNotifications() {
+  await scheduleMedicationNotifications();
+}
