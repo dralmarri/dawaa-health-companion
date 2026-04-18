@@ -100,7 +100,7 @@ export async function scheduleMedicationNotifications() {
     id: number;
     title: string;
     body: string;
-    schedule: { at: Date; repeats: boolean; every: 'day'; allowWhileIdle: boolean };
+    schedule: any;
     sound: string;
     smallIcon: string;
   }> = [];
@@ -112,15 +112,10 @@ export async function scheduleMedicationNotifications() {
       const [hours, minutes] = timeStr.split(':').map(Number);
       if (isNaN(hours) || isNaN(minutes)) return;
 
-      const doseTime = new Date();
-      doseTime.setHours(hours, minutes, 0, 0);
-
-      const notifyTime = new Date(doseTime.getTime() - reminderMinutes * 60 * 1000);
-      
-      // If the notification time has passed today, schedule for tomorrow
-      if (notifyTime.getTime() <= now.getTime()) {
-        notifyTime.setDate(notifyTime.getDate() + 1);
-      }
+      // Calculate the actual notification time (dose time minus reminder offset)
+      const totalMinutes = hours * 60 + minutes - reminderMinutes;
+      const notifyHour = ((Math.floor(totalMinutes / 60) % 24) + 24) % 24;
+      const notifyMinute = ((totalMinutes % 60) + 60) % 60;
 
       const { title, body } = getNotificationBody([med], isArabic);
       const id = stableId(med.id, timeStr);
@@ -130,7 +125,9 @@ export async function scheduleMedicationNotifications() {
         id,
         title,
         body,
-        schedule: { at: notifyTime, repeats: true, every: 'day' as const, allowWhileIdle: true },
+        // Use cron-like 'on' schedule: fires once per day at exact hour:minute
+        // This prevents duplicate firings when app is reopened multiple times
+        schedule: { on: { hour: notifyHour, minute: notifyMinute }, allowWhileIdle: true },
         sound: 'default',
         smallIcon: 'ic_stat_icon_config_sample',
       });
@@ -140,11 +137,6 @@ export async function scheduleMedicationNotifications() {
   // === Blood Pressure Reminders (10 AM and 9 PM daily) ===
   const bpTimes = [{ hour: 10, min: 0, id: 9990 }, { hour: 21, min: 0, id: 9991 }];
   bpTimes.forEach(({ hour, min, id }) => {
-    const bpTime = new Date();
-    bpTime.setHours(hour, min, 0, 0);
-    if (bpTime.getTime() <= now.getTime()) {
-      bpTime.setDate(bpTime.getDate() + 1);
-    }
     scheduledIds.push(id);
     notifications.push({
       id,
@@ -152,7 +144,7 @@ export async function scheduleMedicationNotifications() {
       body: isArabic
         ? `حان وقت قياس ضغط الدم (${hour === 10 ? 'الصباح' : 'المساء'})`
         : `Time to measure your blood pressure (${hour === 10 ? 'Morning' : 'Evening'})`,
-      schedule: { at: bpTime, repeats: true, every: 'day' as const, allowWhileIdle: true },
+      schedule: { on: { hour, minute: min }, allowWhileIdle: true },
       sound: 'default',
       smallIcon: 'ic_stat_icon_config_sample',
     });
@@ -172,12 +164,6 @@ export async function scheduleMedicationNotifications() {
   });
 
   if (lowStockMeds.length > 0) {
-    const stockTime = new Date();
-    stockTime.setHours(9, 0, 0, 0);
-    if (stockTime.getTime() <= now.getTime()) {
-      stockTime.setDate(stockTime.getDate() + 1);
-    }
-
     const stockId = 9999;
     scheduledIds.push(stockId);
     const names = lowStockMeds.map(m => m.name).join(isArabic ? '، ' : ', ');
@@ -188,7 +174,7 @@ export async function scheduleMedicationNotifications() {
       body: isArabic
         ? `مخزون منخفض (أقل من 20%): ${names}`
         : `Low stock (below 20%): ${names}`,
-      schedule: { at: stockTime, repeats: true, every: 'day' as const, allowWhileIdle: true },
+      schedule: { on: { hour: 9, minute: 0 }, allowWhileIdle: true },
       sound: 'default',
       smallIcon: 'ic_stat_icon_config_sample',
     });
@@ -217,7 +203,7 @@ export async function scheduleMedicationNotifications() {
         body: isArabic
           ? `لديك موعد ${appt.specialty}${doctorInfo} غداً الساعة ${appt.time}`
           : `You have a ${appt.specialty}${doctorInfo} appointment tomorrow at ${appt.time}`,
-        schedule: { at: dayBefore, repeats: false, every: 'day' as const, allowWhileIdle: true },
+        schedule: { at: dayBefore, allowWhileIdle: true },
         sound: 'default',
         smallIcon: 'ic_stat_icon_config_sample',
       });
@@ -235,7 +221,7 @@ export async function scheduleMedicationNotifications() {
         body: isArabic
           ? `موعد ${appt.specialty}${doctorInfo} الساعة ${appt.time}`
           : `${appt.specialty}${doctorInfo} appointment at ${appt.time}`,
-        schedule: { at: twoHoursBefore, repeats: false, every: 'day' as const, allowWhileIdle: true },
+        schedule: { at: twoHoursBefore, allowWhileIdle: true },
         sound: 'default',
         smallIcon: 'ic_stat_icon_config_sample',
       });
@@ -245,11 +231,6 @@ export async function scheduleMedicationNotifications() {
   // Daily summary
   if (settings.dailySummary && medications.length > 0) {
     const [sumH, sumM] = (settings.dailySummaryTime || '08:00').split(':').map(Number);
-    const summaryTime = new Date();
-    summaryTime.setHours(sumH, sumM, 0, 0);
-    if (summaryTime.getTime() <= now.getTime()) {
-      summaryTime.setDate(summaryTime.getDate() + 1);
-    }
 
     const summaryId = 9998;
     scheduledIds.push(summaryId);
@@ -265,7 +246,7 @@ export async function scheduleMedicationNotifications() {
       id: summaryId,
       title: isArabic ? `📋 ملخص أدوية اليوم (${totalDoses} جرعة)` : `📋 Today's Medications (${totalDoses} doses)`,
       body: medList,
-      schedule: { at: summaryTime, repeats: true, every: 'day' as const, allowWhileIdle: true },
+      schedule: { on: { hour: sumH, minute: sumM }, allowWhileIdle: true },
       sound: 'default',
       smallIcon: 'ic_stat_icon_config_sample',
     });
