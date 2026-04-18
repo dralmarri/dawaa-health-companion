@@ -112,15 +112,10 @@ export async function scheduleMedicationNotifications() {
       const [hours, minutes] = timeStr.split(':').map(Number);
       if (isNaN(hours) || isNaN(minutes)) return;
 
-      const doseTime = new Date();
-      doseTime.setHours(hours, minutes, 0, 0);
-
-      const notifyTime = new Date(doseTime.getTime() - reminderMinutes * 60 * 1000);
-      
-      // If the notification time has passed today, schedule for tomorrow
-      if (notifyTime.getTime() <= now.getTime()) {
-        notifyTime.setDate(notifyTime.getDate() + 1);
-      }
+      // Calculate the actual notification time (dose time minus reminder offset)
+      const totalMinutes = hours * 60 + minutes - reminderMinutes;
+      const notifyHour = ((Math.floor(totalMinutes / 60) % 24) + 24) % 24;
+      const notifyMinute = ((totalMinutes % 60) + 60) % 60;
 
       const { title, body } = getNotificationBody([med], isArabic);
       const id = stableId(med.id, timeStr);
@@ -130,7 +125,9 @@ export async function scheduleMedicationNotifications() {
         id,
         title,
         body,
-        schedule: { at: notifyTime, repeats: true, every: 'day' as const, allowWhileIdle: true },
+        // Use cron-like 'on' schedule: fires once per day at exact hour:minute
+        // This prevents duplicate firings when app is reopened multiple times
+        schedule: { on: { hour: notifyHour, minute: notifyMinute }, allowWhileIdle: true },
         sound: 'default',
         smallIcon: 'ic_stat_icon_config_sample',
       });
