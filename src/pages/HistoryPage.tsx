@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { CalendarDays, Check, X, Clock } from "lucide-react";
 import { store } from "@/lib/store";
-import { generateTodayDoses, markDoseTaken } from "@/lib/dose-tracker";
+import { generateTodayDoses, markDoseTaken, undoDose } from "@/lib/dose-tracker";
 import EmptyState from "@/components/EmptyState";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { format } from "date-fns";
@@ -151,13 +151,21 @@ const HistoryPage = () => {
                       >
                         {isRTL ? "فائتة" : "Missed"}
                       </button>
+                    ) : rec.status === "taken" ? (
+                      <button
+                        onClick={async () => {
+                          await undoDose(rec.id);
+                          toast(isRTL ? "تم التراجع — الجرعة لم تؤخذ" : "Reverted — dose not taken");
+                          window.location.reload();
+                        }}
+                        className="text-xs font-medium px-2 py-1 rounded-full bg-summary-taken text-summary-taken-foreground hover:bg-secondary hover:text-summary-schedule transition-colors cursor-pointer"
+                        title={isRTL ? "اضغط للتراجع" : "Click to undo"}
+                      >
+                        {isRTL ? "تم ↶" : "Taken ↶"}
+                      </button>
                     ) : (
-                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                        rec.status === "taken" ? "bg-summary-taken text-summary-taken-foreground" :
-                        "bg-secondary text-summary-schedule"
-                      }`}>
-                        {rec.status === "taken" ? (isRTL ? "تم" : "Taken") :
-                         (isRTL ? "معلقة" : "Pending")}
+                      <span className="text-xs font-medium px-2 py-1 rounded-full bg-secondary text-summary-schedule">
+                        {isRTL ? "معلقة" : "Pending"}
                       </span>
                     )}
                   </div>

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Pill, Heart, CalendarDays, FlaskConical, Plus, Check, X, AlertTriangle, Clock } from "lucide-react";
 import { store } from "@/lib/store";
-import { generateTodayDoses, markDoseTaken, markDoseMissed } from "@/lib/dose-tracker";
+import { generateTodayDoses, markDoseTaken, markDoseMissed, undoDose } from "@/lib/dose-tracker";
 import { format } from "date-fns";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
@@ -35,7 +35,17 @@ const HomePage = () => {
     e.preventDefault();
     const { lowStockMed } = await markDoseTaken(id);
     setTodayDoses(generateTodayDoses());
-    toast.success(isRTL ? "تم تسجيل الجرعة ✓" : "Dose recorded ✓");
+    toast.success(isRTL ? "تم تسجيل الجرعة ✓" : "Dose recorded ✓", {
+      action: {
+        label: isRTL ? "تراجع" : "Undo",
+        onClick: async () => {
+          await undoDose(id);
+          setTodayDoses(generateTodayDoses());
+          toast(isRTL ? "تم التراجع — الجرعة لم تؤخذ" : "Reverted — dose not taken");
+        },
+      },
+      duration: 6000,
+    });
     if (lowStockMed) {
       toast.warning(
         isRTL
@@ -44,6 +54,14 @@ const HomePage = () => {
         { duration: 6000 }
       );
     }
+  };
+
+  const handleUndo = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    await undoDose(id);
+    setTodayDoses(generateTodayDoses());
+    toast(isRTL ? "تم التراجع — الجرعة لم تؤخذ" : "Reverted — dose not taken");
   };
 
   const handleMissed = async (id: string, e: React.MouseEvent) => {
