@@ -1,5 +1,6 @@
 import { store } from './store';
 import { format, differenceInDays, differenceInMonths, parseISO, addDays } from 'date-fns';
+import { cancelDoseNotification, rescheduleAllNotifications } from './notifications';
 import type { DoseRecord } from '@/types';
 
 /**
@@ -161,20 +162,26 @@ export async function markDoseTaken(recordId: string): Promise<{ lowStockMed?: {
   const record = records.find(r => r.id === recordId);
   let lowStockMed: { name: string; stock: number; percent: number } | undefined;
   if (record) {
+    const wasNotTaken = record.status !== 'taken';
     record.status = 'taken';
     record.takenAt = format(new Date(), 'HH:mm');
     await store.saveDoseRecord(record);
 
-    // Decrease stock
-    const med = store.getMedications().find(m => m.id === record.medicationId);
-    if (med && med.stock > 0) {
-      med.stock -= 1;
-      await store.saveMedication(med);
+    // Cancel today's pending reminder so notification doesn't fire after user took the dose
+    cancelDoseNotification(record.medicationId, record.scheduledTime).catch(() => {});
 
-      const initial = med.initialStock || med.stock + 1;
-      const percent = Math.round((med.stock / initial) * 100);
-      if (percent <= 20) {
-        lowStockMed = { name: med.name, stock: med.stock, percent };
+    // Decrease stock only on a fresh "taken" transition
+    if (wasNotTaken) {
+      const med = store.getMedications().find(m => m.id === record.medicationId);
+      if (med && med.stock > 0) {
+        med.stock -= 1;
+        await store.saveMedication(med);
+
+        const initial = med.initialStock || med.stock + 1;
+        const percent = Math.round((med.stock / initial) * 100);
+        if (percent <= 20) {
+          lowStockMed = { name: med.name, stock: med.stock, percent };
+        }
       }
     }
   }
@@ -191,4 +198,29 @@ export async function markDoseMissed(recordId: string) {
     record.status = 'missed';
     await store.saveDoseRecord(record);
   }
+}
+
+/**
+ * Undo a dose — revert to pending. Refund stock if it was previously taken.
+ */
+export async function undoDose(recordId: string): Promise<void> {
+  const records = store.getDoseRecords();
+  const record = records.find(r => r.id === recordId);
+  if (!record) return;
+
+  const wasTaken = record.status === 'taken';
+  record.status = 'pending';
+  record.takenAt = undefined;
+  await store.saveDoseRecord(record);
+
+  if (wasTaken) {
+    const med = store.getMedications().find(m => m.id === record.medicationId);
+    if (med) {
+      med.stock += 1;
+      await store.saveMedication(med);
+    }
+  }
+
+  // Re-arm notifications so the daily reminder is scheduled again
+  rescheduleAllNotifications().catch(() => {});
 }
