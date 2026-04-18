@@ -137,11 +137,6 @@ export async function scheduleMedicationNotifications() {
   // === Blood Pressure Reminders (10 AM and 9 PM daily) ===
   const bpTimes = [{ hour: 10, min: 0, id: 9990 }, { hour: 21, min: 0, id: 9991 }];
   bpTimes.forEach(({ hour, min, id }) => {
-    const bpTime = new Date();
-    bpTime.setHours(hour, min, 0, 0);
-    if (bpTime.getTime() <= now.getTime()) {
-      bpTime.setDate(bpTime.getDate() + 1);
-    }
     scheduledIds.push(id);
     notifications.push({
       id,
@@ -149,7 +144,7 @@ export async function scheduleMedicationNotifications() {
       body: isArabic
         ? `حان وقت قياس ضغط الدم (${hour === 10 ? 'الصباح' : 'المساء'})`
         : `Time to measure your blood pressure (${hour === 10 ? 'Morning' : 'Evening'})`,
-      schedule: { at: bpTime, repeats: true, every: 'day' as const, allowWhileIdle: true },
+      schedule: { on: { hour, minute: min }, allowWhileIdle: true },
       sound: 'default',
       smallIcon: 'ic_stat_icon_config_sample',
     });
