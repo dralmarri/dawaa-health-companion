@@ -96,6 +96,22 @@ export async function scheduleMedicationNotifications() {
   const now = new Date();
   const isArabic = settings.language === 'ar';
 
+  // Build a set of "med|time" doses already taken today — we should NOT
+  // re-schedule a reminder for these today (avoids notification still
+  // firing after the user marked the dose as taken).
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const takenToday = new Set<string>();
+  try {
+    const records = store.getDoseRecords?.() || [];
+    records.forEach((r: any) => {
+      if (r.date === todayStr && r.status === 'taken') {
+        takenToday.add(`${r.medicationId}|${r.scheduledTime}`);
+      }
+    });
+  } catch {
+    // ignore — if dose records unavailable, fall back to cron schedule
+  }
+
   const notifications: Array<{
     id: number;
     title: string;
@@ -121,13 +137,26 @@ export async function scheduleMedicationNotifications() {
       const id = stableId(med.id, timeStr);
       scheduledIds.push(id);
 
+      const alreadyTakenToday = takenToday.has(`${med.id}|${timeStr}`);
+
+      let schedule: any;
+      if (alreadyTakenToday) {
+        // Dose already taken today — schedule next occurrence for TOMORROW
+        // at the same hour:minute, then let it repeat daily from there.
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(notifyHour, notifyMinute, 0, 0);
+        schedule = { at: tomorrow, repeats: true, every: 'day', allowWhileIdle: true };
+      } else {
+        // Cron-like 'on' schedule: fires once per day at exact hour:minute
+        schedule = { on: { hour: notifyHour, minute: notifyMinute }, allowWhileIdle: true };
+      }
+
       notifications.push({
         id,
         title,
         body,
-        // Use cron-like 'on' schedule: fires once per day at exact hour:minute
-        // This prevents duplicate firings when app is reopened multiple times
-        schedule: { on: { hour: notifyHour, minute: notifyMinute }, allowWhileIdle: true },
+        schedule,
         sound: 'default',
         smallIcon: 'ic_stat_icon_config_sample',
       });
