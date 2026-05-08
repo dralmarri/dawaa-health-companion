@@ -312,6 +312,24 @@ export async function cancelDoseNotification(medicationId: string, timeStr: stri
 }
 
 /**
+ * Cancel ALL notifications for a medication (across all its time slots).
+ * Call this when a medication is deleted so stale OS-scheduled reminders disappear.
+ */
+export async function cancelMedicationNotifications(medicationId: string, times: string[]) {
+  try {
+    const ids = times.map(t => ({ id: stableId(medicationId, t) }));
+    if (ids.length > 0) {
+      await LocalNotifications.cancel({ notifications: ids });
+    }
+    const idSet = new Set(ids.map(i => i.id));
+    scheduledIds = scheduledIds.filter(x => !idSet.has(x));
+    console.log(`[Notifications] Canceled all reminders for medication ${medicationId}`);
+  } catch (e) {
+    console.warn('[Notifications] Failed to cancel medication notifications', e);
+  }
+}
+
+/**
  * Re-schedule a single dose notification (used when undoing a taken dose).
  */
 export async function rescheduleAllNotifications() {

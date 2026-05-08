@@ -4,6 +4,7 @@ import { Pill, Pencil, Trash2, CalendarClock } from "lucide-react";
 import { parseISO, addDays, addMonths, addWeeks, format, differenceInDays } from "date-fns";
 import { ar } from "date-fns/locale";
 import { store } from "@/lib/store";
+import { cancelMedicationNotifications, rescheduleAllNotifications } from "@/lib/notifications";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -14,10 +15,15 @@ const MedicationsPage = () => {
   const { t, isRTL } = useLanguage();
   const [medications, setMedications] = useState<Medication[]>(store.getMedications());
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     const confirmed = window.confirm(isRTL ? "هل أنت متأكد من حذف هذا الدواء؟" : "Are you sure you want to delete this medication?");
     if (!confirmed) return;
-    store.deleteMedication(id);
+    const med = store.getMedications().find(m => m.id === id);
+    await store.deleteMedication(id);
+    if (med) {
+      await cancelMedicationNotifications(med.id, med.times || []);
+    }
+    await rescheduleAllNotifications();
     setMedications(store.getMedications());
   };
 
